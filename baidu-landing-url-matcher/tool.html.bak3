@@ -1,0 +1,3429 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>百度竞价落地页URL匹配工具</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-input: #0d1117;
+    --bg-hover: #1f2630;
+    --bg-row-alt: #11161d;
+    --border: #30363d;
+    --border-light: #21262d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --primary: #2f81f7;
+    --primary-hover: #1f6feb;
+    --primary-dim: #0d2d5e;
+    --success: #3fb950;
+    --success-dim: #1a3a26;
+    --danger: #f85149;
+    --danger-dim: #3a1a1c;
+    --warning: #d29922;
+    --warning-dim: #3a2e14;
+    --accent: #a371f7;
+    --accent-dim: #2a1f4a;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* 顶部栏 */
+  .topbar {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: #fff;
+  }
+  .topbar h1 { font-size: 17px; font-weight: 600; }
+  .topbar h1 small { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; }
+
+  /* 按钮 */
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-success { background: var(--success-dim); border-color: var(--success); color: var(--success); }
+  .btn-success:hover { background: var(--success); color: #fff; }
+  .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { padding: 6px 8px; }
+
+  /* Tab */
+  .tabs {
+    display: flex;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    position: sticky;
+    top: 65px;
+    z-index: 90;
+  }
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+  .tab-badge {
+    background: var(--primary-dim);
+    color: var(--primary);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* 主容器 */
+  .container { padding: 24px; max-width: 1600px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* 卡片 */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-row-alt);
+  }
+  .card-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card-header .desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .card-body { padding: 18px; }
+
+  /* 表单元素 */
+  label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+  input[type="text"], input[type="url"], textarea, select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(47,129,247,0.15);
+  }
+  textarea { resize: vertical; min-height: 180px; line-height: 1.6; font-family: "Consolas", "Courier New", monospace; }
+  select { cursor: pointer; }
+
+  .form-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .form-group { flex: 1; min-width: 160px; }
+  .form-group label { margin-bottom: 5px; }
+
+  /* 单选/复选 */
+  .radio-group, .check-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .radio-group label, .check-group label {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text); font-size: 13px; margin: 0; cursor: pointer;
+  }
+  input[type="radio"], input[type="checkbox"] { accent-color: var(--primary); cursor: pointer; }
+
+  /* 表格 */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 10; background: var(--bg-row-alt); }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: var(--bg-hover); }
+  tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  tbody tr:nth-child(even):hover { background: var(--bg-hover); }
+  .url-cell { color: var(--accent); word-break: break-all; font-family: "Consolas", monospace; font-size: 12px; }
+  .url-cell:hover { text-decoration: underline; cursor: pointer; }
+
+  /* 状态标签 */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tag-success { background: var(--success-dim); color: var(--success); }
+  .tag-danger { background: var(--danger-dim); color: var(--danger); }
+  .tag-warning { background: var(--warning-dim); color: var(--warning); }
+  .tag-primary { background: var(--primary-dim); color: var(--primary); }
+  .tag-accent { background: var(--accent-dim); color: var(--accent); }
+  .tag-muted { background: var(--bg-hover); color: var(--text-muted); }
+
+  /* 统计条 */
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 18px;
+    background: var(--bg-row-alt);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-item { display: flex; align-items: center; gap: 8px; }
+  .stat-num { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  /* 操作区 */
+  .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .action-bar .spacer { flex: 1; }
+
+  /* 提示 */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .alert-info { background: var(--primary-dim); border: 1px solid var(--primary); color: #a8c7fa; }
+  .alert-warning { background: var(--warning-dim); border: 1px solid var(--warning); color: #e3b341; }
+  .alert-success { background: var(--success-dim); border: 1px solid var(--success); color: #56d364; }
+
+  /* 代码块 */
+  code, .mono { font-family: "Consolas", "Courier New", monospace; background: var(--bg-input); padding: 1px 6px; border-radius: 3px; font-size: 12px; color: var(--accent); }
+  pre { background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; font-family: "Consolas", monospace; font-size: 12px; line-height: 1.6; }
+
+  /* 开关 */
+  .switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--border); border-radius: 22px; transition: 0.2s;
+  }
+  .slider:before {
+    content: ""; position: absolute; height: 16px; width: 16px;
+    left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s;
+  }
+  .switch input:checked + .slider { background: var(--success); }
+  .switch input:checked + .slider:before { transform: translateX(16px); }
+
+  /* 拖拽手柄 */
+  .drag-handle { cursor: grab; color: var(--text-dim); user-select: none; padding: 0 4px; }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle:hover { color: var(--text-muted); }
+  tr.dragging { opacity: 0.4; }
+  tr.drag-over { border-top: 2px solid var(--primary); }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 24px; border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 9999;
+    display: none; font-size: 14px; align-items: center; gap: 8px;
+  }
+  #toast.show { display: flex; animation: slideUp 0.3s; }
+  @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  /* 空状态 */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+
+  /* 说明文档 */
+  .doc-section { margin-bottom: 24px; }
+  .doc-section h4 { color: var(--primary); margin-bottom: 10px; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+  .doc-section ul { margin-left: 20px; margin-bottom: 10px; }
+  .doc-section li { margin-bottom: 6px; line-height: 1.7; }
+  .doc-section table { margin: 10px 0; }
+  .doc-section td:first-child { white-space: nowrap; color: var(--accent); font-family: monospace; }
+
+  .footer-note { text-align: center; color: var(--text-dim); font-size: 12px; padding: 20px; border-top: 1px solid var(--border-light); margin-top: 30px; }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  .input-format-hint {
+    font-size: 12px; color: var(--text-dim); margin-top: 6px;
+    padding: 8px 12px; background: var(--bg-input); border-radius: 6px;
+    border-left: 3px solid var(--primary);
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- 顶部栏 -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">U</div>
+    <h1>百度竞价落地页URL匹配工具 <small>本地离线 · 双击即用</small></h1>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-sm btn-success" onclick="saveToHtmlFile()" title="把当前数据写回HTML文件，复制到任何电脑都是最新版" id="btnSaveHtml" style="">💾 保存到文件</button>
+    <button class="btn btn-sm" onclick="exportConfig()">导出规则</button>
+    <label class="btn btn-sm" style="cursor:pointer;">
+      导入规则
+      <input type="file" accept=".json" style="display:none;" onchange="importConfig(event)">
+    </label>
+    <button class="btn btn-sm btn-danger" onclick="clearAllData()">清空数据</button>
+  </div>
+</div>
+
+<!-- Tab 导航 -->
+<div class="tabs">
+  <div class="tab" data-tab="match" onclick="switchTab('match')">匹配执行</div>
+  <div class="tab active" data-tab="rules" onclick="switchTab('rules')">规则配置 <span class="tab-badge" id="rules-count">126</span></div>
+  <div class="tab" data-tab="domains" onclick="switchTab('domains')">域名管理 <span class="tab-badge" id="domains-count">5</span></div>
+  <div class="tab" data-tab="docs" onclick="switchTab('docs')">使用说明</div>
+</div>
+
+<div class="container">
+
+  <!-- ============ 匹配执行 Tab ============ -->
+  <div class="tab-content" id="tab-match">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3>输入关键词</h3>
+          <div class="desc">从 Excel 复制粘贴即可，支持 Tab 分隔的多列</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 auto;">
+            <label>输入格式</label>
+            <div class="radio-group" onchange="updateInputHint()">
+              <label><input type="radio" name="inputFormat" value="keyword" checked=""> 仅关键词</label>
+              <label><input type="radio" name="inputFormat" value="pu"> 计划 + 单元 + 关键词</label>
+              <label><input type="radio" name="inputFormat" value="full"> 计划+单元+关键词+类别</label>
+            </div>
+          </div>
+        </div>
+        <div class="input-format-hint" id="inputHint">三列 Tab 分隔（计划 / 单元 / 关键词），可直接从 Excel 复制 3 列。示例：<br><span class="mono">上海-大词	园区	奉贤区产业园厂房租赁</span><br><span class="mono">写字楼-上海	行政区划-黄浦-huangpu	上海黄浦区写字楼出租</span></div>
+        <div style="margin-top:12px;">
+          <label>粘贴内容（支持从 Excel 直接复制，Tab 分隔列）</label>
+          <textarea id="inputArea" placeholder="在此粘贴关键词，每行一个或按选定格式粘贴..."></textarea>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="runMatch()">执行匹配</button>
+          <button class="btn" onclick="loadSampleInput()">载入示例</button>
+          <button class="btn" onclick="document.getElementById('inputArea').value=''; clearResults();">清空输入</button>
+          <div class="spacer"></div>
+          <span style="color:var(--text-muted);font-size:12px;">匹配规则按优先级从上到下，命中即停止</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="resultCard">
+      <div class="card-header">
+        <div>
+          <h3>匹配结果</h3>
+          <div class="desc">点击 URL 可复制单个 · 复制全部可直接粘贴回 Excel</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-success" onclick="copyAllResults()">复制全部结果</button>
+          <button class="btn btn-sm" onclick="exportResults()">导出 CSV</button>
+          <button class="btn btn-sm btn-danger" onclick="copyUnmatched()">仅复制未匹配</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-num" id="stat-total">2</span>
+            <span class="stat-label">总条数</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" style="color:var(--success)" id="stat-matched">2</span>
+            <span class="stat-label">已匹配</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" style="color:var(--danger)" id="stat-unmatched">0</span>
+            <span class="stat-label">未匹配</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" style="color:var(--warning)" id="stat-default">0</span>
+            <span class="stat-label">走默认URL</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>计划</th>
+                <th>单元</th>
+                <th>关键词</th>
+                <th>类别</th>
+                <th>页面类型</th>
+                <th>命中规则</th>
+                <th>匹配类型</th>
+                <th>最终URL</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody"><tr><td>1</td><td>上海</td><td>上海-厂房</td><td>上海厂房</td><td></td><td>生造词页面</td><td><span class="tag tag-muted">上海-厂房</span></td><td><span class="tag tag-accent">单元包含</span></td><td class="url-cell" onclick="copyText(this.textContent)" title="点击复制">https://qgyaunqu.zhaoshang.net/yuanqu/park/shfactory/?utm_source=SEM-baidu-PC&amp;utm_medium=PC</td><td><span class="tag tag-success">已匹配</span></td></tr><tr><td>2</td><td>上海</td><td>上海-写字楼</td><td>上海写字楼</td><td></td><td>真实园区页面</td><td><span class="tag tag-muted">上海写字楼</span></td><td><span class="tag tag-primary">关键词包含</span></td><td class="url-cell" onclick="copyText(this.textContent)" title="点击复制">https://qgqydoo.xuannaer.com.cn/yuanqu/sh/shanghaixzl/?utm_source=SEM-baidu-PC&amp;utm_medium=PC</td><td><span class="tag tag-success">已匹配</span></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 规则配置 Tab ============ -->
+  <div class="tab-content active" id="tab-rules">
+
+    <!-- 批量粘贴建规则 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3>批量粘贴建规则</h3>
+          <div class="desc">从 Excel 复制粘贴即可批量生成规则 · 每行一条 · Tab 分隔列</div>
+        </div>
+        <button class="btn btn-sm" onclick="toggleBatchPaste()">展开/收起</button>
+      </div>
+      <div class="card-body hidden" id="batchPasteCard">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 auto;">
+            <label>粘贴格式</label>
+            <div class="radio-group" onchange="updateBatchPasteHint()">
+              <label><input type="radio" name="batchFormat" value="puu" checked=""> 计划|||单元 → URL</label>
+              <label><input type="radio" name="batchFormat" value="uu"> 单元 → URL</label>
+              <label><input type="radio" name="batchFormat" value="custom"> 自定义列</label>
+            </div>
+          </div>
+        </div>
+        <div class="input-format-hint" id="batchPasteHint">三列 Tab 分隔：<b>计划名</b> <b>单元名</b> <b>完整URL</b>。匹配类型自动设为「计划+单元」，value格式：<code>计划|||单元</code>。<br>示例：<span class="mono">上海-大词&nbsp;&nbsp;园区&nbsp;&nbsp;https://sh.xuannaer.com.cn/yuanqu/list/?utm_source=SEM-baidu-PC</span></div>
+        <div style="margin-top:12px;">
+          <label>粘贴内容（每行一条规则）</label>
+          <textarea id="batchPasteArea" placeholder="在此粘贴，每行一条规则，Tab 分隔列..." style="min-height:140px;"></textarea>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="batchPasteCreate()">生成规则</button>
+          <button class="btn" onclick="document.getElementById('batchPasteArea').value='';">清空</button>
+          <div class="spacer"></div>
+          <span style="color:var(--text-muted);font-size:12px;" id="batchPasteCount">0 行</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 规则列表 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3>匹配规则</h3>
+          <div class="desc">优先级从上到下 · 拖拽行可调整顺序 · 命中第一条后停止 · 勾选可批量操作</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="ruleDomainFilter" style="padding:5px 10px;font-size:12px;" onchange="renderRules()"><option value="">全部域名</option></select>
+          <select id="rulePageTypeFilter" style="padding:5px 10px;font-size:12px;" onchange="renderRules()"><option value="">全部页面类型</option><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option></select>
+          <select id="ruleRegionFilter" style="padding:5px 10px;font-size:12px;" onchange="renderRules()"><option value="">全部地域</option><option value="上海" selected="">上海</option><option value="北京">北京</option><option value="天津">天津</option><option value="安徽">安徽</option><option value="山东">山东</option><option value="广东">广东</option><option value="新疆">新疆</option><option value="江苏">江苏</option><option value="浙江">浙江</option><option value="湖南">湖南</option></select>
+          <input type="text" id="ruleSearch" placeholder="搜索规则..." style="width:180px;padding:5px 10px;font-size:12px;" oninput="renderRules()">
+          <button class="btn btn-sm btn-primary" onclick="addRule()">+ 添加规则</button>
+        </div>
+      </div>
+      <!-- 批量操作栏 -->
+      <div id="batchBar" style="background: var(--primary-dim); border-bottom: 1px solid var(--primary); padding: 8px 18px; display: none; align-items: center; gap: 10px;">
+        <span id="batchSelectedCount" style="color:var(--primary);font-size:13px;font-weight:500;">已选 126 条</span>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-success" onclick="batchEnable(true)">批量启用</button>
+        <button class="btn btn-sm" onclick="batchEnable(false)">批量禁用</button>
+        <button class="btn btn-sm" onclick="batchChangeDomain()">批量改域名</button>
+        <button class="btn btn-sm" onclick="batchDuplicate()">复制选中</button>
+        <button class="btn btn-sm btn-danger" onclick="batchDelete()">批量删除</button>
+        <button class="btn btn-sm" onclick="clearSelection()">取消选择</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap" style="max-height:560px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px;"><input type="checkbox" id="ruleSelectAll" onchange="toggleSelectAll(this.checked)"></th>
+                <th style="width:40px;">序</th>
+                <th style="width:130px;">匹配类型</th>
+                <th>匹配值</th>
+                <th style="width:80px;">地域</th>
+                <th style="width:100px;">页面类型</th>
+                <th style="width:150px;">域名</th>
+                <th>路径 / 文件</th>
+                <th>监控后缀</th>
+                <th style="width:60px;">启用</th>
+                <th style="width:140px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="rulesBody"><tr data-id="id_1782979828882_fumpun" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979828882_fumpun" onchange="toggleSelectRule('id_1782979828882_fumpun', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 109</td><td><select data-field="type" data-id="id_1782979828882_fumpun"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979828882_fumpun" value="上海-厂房" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979828882_fumpun" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979828882_fumpun"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979828882_fumpun"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979828882_fumpun" value="/yuanqu/park/shfactory/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979828882_fumpun" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979828882_fumpun" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979828882_fumpun')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979828882_fumpun')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979828882_fumpun')" title="删除">✕</button></td></tr><tr data-id="id_1782979850586_03648n" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979850586_03648n" onchange="toggleSelectRule('id_1782979850586_03648n', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 110</td><td><select data-field="type" data-id="id_1782979850586_03648n"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979850586_03648n" value="上海-奉贤" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979850586_03648n" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979850586_03648n"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979850586_03648n"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979850586_03648n" value="/yuanqu/park/fengxian/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979850586_03648n" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979850586_03648n" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979850586_03648n')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979850586_03648n')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979850586_03648n')" title="删除">✕</button></td></tr><tr data-id="id_1782979863514_zx993q" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979863514_zx993q" onchange="toggleSelectRule('id_1782979863514_zx993q', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 111</td><td><select data-field="type" data-id="id_1782979863514_zx993q"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979863514_zx993q" value="上海-临港" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979863514_zx993q" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979863514_zx993q"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979863514_zx993q"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979863514_zx993q" value="/yuanqu/park/shlg/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979863514_zx993q" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979863514_zx993q" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979863514_zx993q')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979863514_zx993q')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979863514_zx993q')" title="删除">✕</button></td></tr><tr data-id="id_1782979876226_x4vb9f" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979876226_x4vb9f" onchange="toggleSelectRule('id_1782979876226_x4vb9f', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 112</td><td><select data-field="type" data-id="id_1782979876226_x4vb9f"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979876226_x4vb9f" value="上海-闵行" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979876226_x4vb9f" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979876226_x4vb9f"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979876226_x4vb9f"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979876226_x4vb9f" value="/yuanqu/park/minhang/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979876226_x4vb9f" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979876226_x4vb9f" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979876226_x4vb9f')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979876226_x4vb9f')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979876226_x4vb9f')" title="删除">✕</button></td></tr><tr data-id="id_1782979885322_d6nd56" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979885322_d6nd56" onchange="toggleSelectRule('id_1782979885322_d6nd56', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 113</td><td><select data-field="type" data-id="id_1782979885322_d6nd56"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979885322_d6nd56" value="上海-浦东" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979885322_d6nd56" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979885322_d6nd56"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979885322_d6nd56"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979885322_d6nd56" value="/yuanqu/park/shpd/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979885322_d6nd56" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979885322_d6nd56" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979885322_d6nd56')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979885322_d6nd56')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979885322_d6nd56')" title="删除">✕</button></td></tr><tr data-id="id_1782979894882_ao1b8m" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979894882_ao1b8m" onchange="toggleSelectRule('id_1782979894882_ao1b8m', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 114</td><td><select data-field="type" data-id="id_1782979894882_ao1b8m"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979894882_ao1b8m" value="上海-外资" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979894882_ao1b8m" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979894882_ao1b8m"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979894882_ao1b8m"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979894882_ao1b8m" value="/yuanqu/park/shforeign/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979894882_ao1b8m" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979894882_ao1b8m" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979894882_ao1b8m')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979894882_ao1b8m')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979894882_ao1b8m')" title="删除">✕</button></td></tr><tr data-id="id_1782979904834_1u63ea" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979904834_1u63ea" onchange="toggleSelectRule('id_1782979904834_1u63ea', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 115</td><td><select data-field="type" data-id="id_1782979904834_1u63ea"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979904834_1u63ea" value="上海-医药" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979904834_1u63ea" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979904834_1u63ea"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979904834_1u63ea"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979904834_1u63ea" value="/yuanqu/park/shmedicine/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979904834_1u63ea" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979904834_1u63ea" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979904834_1u63ea')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979904834_1u63ea')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979904834_1u63ea')" title="删除">✕</button></td></tr><tr data-id="id_1782979915562_go409k" draggable="true"><td><input type="checkbox" class="rule-checkbox" data-id="id_1782979915562_go409k" onchange="toggleSelectRule('id_1782979915562_go409k', this.checked)"></td><td><span class="drag-handle" title="拖拽排序">⠿</span> 116</td><td><select data-field="type" data-id="id_1782979915562_go409k"><option value="keyword_exact">关键词精确</option><option value="keyword_contains">关键词包含</option><option value="keyword_regex">关键词正则</option><option value="unit_exact">单元精确</option><option value="unit_contains" selected="">单元包含</option><option value="plan_exact">计划精确</option><option value="plan_contains">计划包含</option><option value="plan_unit_exact">计划+单元</option><option value="category_exact">类别精确</option><option value="category_contains">类别包含</option></select></td><td><input type="text" data-field="value" data-id="id_1782979915562_go409k" value="上海-张江" placeholder="匹配值"></td><td><input type="text" data-field="region" data-id="id_1782979915562_go409k" value="上海" placeholder="上海" style="font-size:12px;"></td><td><select data-field="pageType" data-id="id_1782979915562_go409k"><option value="生造词页面" selected="">生造词页面</option><option value="真实园区页面">真实园区页面</option><option value="通用页面">通用页面</option><option value="">-</option></select></td><td><select data-field="domainId" data-id="id_1782979915562_go409k"><option value="id_1782872754480_pwaour">https://qgqydoo.xuannaer.com.cn</option><option value="id_1782887323182_613n04">https://quanguodoo.xuanzhi.com</option><option value="id_1782887422715_o0r9om">https://qgyaunqudoo.zhaoshang.net</option><option value="id_1782894321819_cnaak3" selected="">https://qgyaunqu.zhaoshang.net</option><option value="id_1782897207111_wodzds">https://quanguo.xuanzhi.com</option></select></td><td><input type="text" data-field="path" data-id="id_1782979915562_go409k" value="/yuanqu/park/zhangjiang/" placeholder="/yuanqu/list/"></td><td><input type="text" data-field="query" data-id="id_1782979915562_go409k" value="utm_source=SEM-baidu-PC&amp;utm_medium=PC" placeholder="utm_source=SEM-baidu-PC&amp;utm_medium=PC"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782979915562_go409k" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon" onclick="duplicateRule('id_1782979915562_go409k')" title="复制此规则">⎘</button> <button class="btn btn-sm btn-icon" onclick="editRemark('id_1782979915562_go409k')" title="备注">✎</button> <button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule('id_1782979915562_go409k')" title="删除">✕</button></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>默认兜底 URL</h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          所有规则均未命中时使用此 URL。支持变量 <code>{{kw}}</code> <code>{{plan}}</code> <code>{{unit}}</code> <code>{{category}}</code>。留空则未匹配项不生成 URL。
+        </div>
+        <input type="text" id="defaultUrl" placeholder="https://sh.xuannaer.com.cn/yuanqu/list/?utm_source=SEM-baidu-PC&amp;utm_medium=PC" oninput="saveDefaultUrl()">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 域名管理 Tab ============ -->
+  <div class="tab-content" id="tab-domains">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3>域名列表</h3>
+          <div class="desc">管理多个落地页域名 · 规则中通过下拉选择对应域名</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="addDomain()">+ 添加域名</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:50px;">默认</th>
+                <th>域名（含 https://）</th>
+                <th>备注</th>
+                <th style="width:70px;">启用</th>
+                <th style="width:100px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="domainsBody"><tr><td><input type="radio" name="defaultDomain" value="id_1782872754480_pwaour" onchange="setDefaultDomain('id_1782872754480_pwaour')"></td><td><input type="text" data-field="url" data-id="id_1782872754480_pwaour" value="https://qgqydoo.xuannaer.com.cn" placeholder="https://www.example.com"></td><td><input type="text" data-field="remark" data-id="id_1782872754480_pwaour" value="AI-选哪20" placeholder="域名备注"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782872754480_pwaour" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain('id_1782872754480_pwaour')">✕</button></td></tr><tr><td><input type="radio" name="defaultDomain" value="id_1782887323182_613n04" onchange="setDefaultDomain('id_1782887323182_613n04')"></td><td><input type="text" data-field="url" data-id="id_1782887323182_613n04" value="https://quanguodoo.xuanzhi.com" placeholder="https://www.example.com"></td><td><input type="text" data-field="remark" data-id="id_1782887323182_613n04" value="AI-选哪2/选哪3" placeholder="域名备注"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782887323182_613n04" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain('id_1782887323182_613n04')">✕</button></td></tr><tr><td><input type="radio" name="defaultDomain" value="id_1782887422715_o0r9om" onchange="setDefaultDomain('id_1782887422715_o0r9om')"></td><td><input type="text" data-field="url" data-id="id_1782887422715_o0r9om" value="https://qgyaunqudoo.zhaoshang.net" placeholder="https://www.example.com"></td><td><input type="text" data-field="remark" data-id="id_1782887422715_o0r9om" value="AI-科技26" placeholder="域名备注"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782887422715_o0r9om" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain('id_1782887422715_o0r9om')">✕</button></td></tr><tr><td><input type="radio" name="defaultDomain" value="id_1782894321819_cnaak3" onchange="setDefaultDomain('id_1782894321819_cnaak3')"></td><td><input type="text" data-field="url" data-id="id_1782894321819_cnaak3" value="https://qgyaunqu.zhaoshang.net" placeholder="https://www.example.com"></td><td><input type="text" data-field="remark" data-id="id_1782894321819_cnaak3" value="自建站-科技26" placeholder="域名备注"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782894321819_cnaak3" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain('id_1782894321819_cnaak3')">✕</button></td></tr><tr><td><input type="radio" name="defaultDomain" value="id_1782897207111_wodzds" onchange="setDefaultDomain('id_1782897207111_wodzds')"></td><td><input type="text" data-field="url" data-id="id_1782897207111_wodzds" value="https://quanguo.xuanzhi.com" placeholder="https://www.example.com"></td><td><input type="text" data-field="remark" data-id="id_1782897207111_wodzds" value="选哪2/选哪3" placeholder="域名备注"></td><td><label class="switch"><input type="checkbox" data-field="enabled" data-id="id_1782897207111_wodzds" checked=""><span class="slider"></span></label></td><td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain('id_1782897207111_wodzds')">✕</button></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 使用说明 Tab ============ -->
+  <div class="tab-content" id="tab-docs">
+    <div class="card">
+      <div class="card-header"><h3>使用说明</h3></div>
+      <div class="card-body">
+
+        <div class="doc-section">
+          <h4>一、快速上手</h4>
+          <ul>
+            <li><b>第 1 步</b>：去「域名管理」添加你的落地页域名（如 <code>https://www.a.com</code>、<code>https://m.b.com</code>）</li>
+            <li><b>第 2 步</b>：去「规则配置」添加匹配规则，选择匹配类型、填匹配值、选域名、填路径和参数</li>
+            <li><b>第 3 步</b>：去「匹配执行」粘贴关键词，点「执行匹配」，复制结果粘回 Excel</li>
+          </ul>
+        </div>
+
+        <div class="doc-section">
+          <h4>二、匹配类型说明</h4>
+          <p style="margin-bottom:10px;color:var(--text-muted);">规则按列表顺序从上到下逐条判断，命中第一条即停止，不再往下匹配。</p>
+          <table>
+            <thead>
+              <tr><th>类型</th><th>说明</th><th>匹配值示例</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>关键词精确</td><td>关键词完全等于匹配值</td><td>奉贤区产业园厂房租赁</td></tr>
+              <tr><td>关键词包含</td><td>关键词包含匹配值子串</td><td>产业园</td></tr>
+              <tr><td>关键词正则</td><td>关键词匹配正则表达式</td><td>^(奉贤|南汇)区?(产业)?园</td></tr>
+              <tr><td>单元精确</td><td>单元名完全等于匹配值</td><td>园区-奉贤URL</td></tr>
+              <tr><td>单元包含</td><td>单元名包含匹配值</td><td>园区</td></tr>
+              <tr><td>计划精确</td><td>计划名完全等于匹配值</td><td>上海-大词</td></tr>
+              <tr><td>计划包含</td><td>计划名包含匹配值</td><td>上海</td></tr>
+              <tr><td>计划+单元</td><td>计划名和单元名同时精确匹配，value格式：计划|||单元</td><td>上海-大词|||园区</td></tr>
+              <tr><td>类别精确</td><td>业务类别完全等于匹配值</td><td>厂房</td></tr>
+              <tr><td>类别包含</td><td>业务类别包含匹配值</td><td>园</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="doc-section">
+          <h4>三、变量替换</h4>
+          <p style="margin-bottom:10px;">在「路径」或「查询参数」中使用双花括号变量，匹配时会自动替换为实际值并做 URL 编码：</p>
+          <table>
+            <thead><tr><th>变量</th><th>含义</th><th>编码</th></tr></thead>
+            <tbody>
+              <tr><td>{{kw}}</td><td>关键词</td><td>URL编码</td></tr>
+              <tr><td>{{kw_raw}}</td><td>关键词（原始不编码）</td><td>原始</td></tr>
+              <tr><td>{{plan}}</td><td>计划名</td><td>URL编码</td></tr>
+              <tr><td>{{unit}}</td><td>单元名</td><td>URL编码</td></tr>
+              <tr><td>{{category}}</td><td>业务类别</td><td>URL编码</td></tr>
+            </tbody>
+          </table>
+          <div class="alert alert-warning" style="margin-top:10px;">
+            <b>注意</b>：百度竞价原生的通配符 <code>{keyword}</code>、<code>{matchtype}</code> 等（单花括号）会被原样保留，不会被替换。本工具只处理双花括号 <code>{{kw}}</code> 变量。
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <h4>四、输入格式</h4>
+          <ul>
+            <li><b>仅关键词</b>：每行一个关键词</li>
+            <li><b>计划+单元+关键词</b>：三列 Tab 分隔，可直接从 Excel 复制 3 列</li>
+            <li><b>计划+单元+关键词+类别</b>：四列 Tab 分隔，第四列为业务类别</li>
+          </ul>
+          <p style="color:var(--text-muted);">提示：从百度竞价后台导出的关键词表，选中「计划/单元/关键词」三列复制，选第二种格式直接粘贴即可。</p>
+        </div>
+
+        <div class="doc-section">
+          <h4>五、典型场景</h4>
+          <pre>  场景：多地域多业务线，关键词分流到不同地域站和落地页
+
+域名管理：
+  · https://sh.xuannaer.com.cn   （上海站）
+  · https://bj.xuannaer.com.cn   （北京站）
+  · https://js.xuannaer.com.cn   （江苏站）
+
+规则配置（按优先级）：
+  1. [计划+单元] "上海-大词|||园区"   → 域名:sh  路径:/yuanqu/list/  参数:utm_source=SEM-baidu-PC&amp;...&amp;e_keyword={keywordid}
+  2. [计划+单元] "北京-大词|||园区"   → 域名:bj  路径:/yuanqu/list/  参数:utm_source=SEM-baidu-PC&amp;...
+  3. [单元精确] "园区-奉贤URL"       → 域名:sh  路径:/fengxian/yuanqu/list/  参数:utm_source=SEM-baidu-PC&amp;...
+  4. [单元包含] "厂房"              → 域名:sh  路径:/changfang/  参数:utm_source=SEM-baidu-PC&amp;...
+  5. [单元包含] "写字楼"            → 域名:bj  路径:/xiezilou/   参数:utm_source=SEM-baidu-PC&amp;...
+
+默认URL：
+  https://sh.xuannaer.com.cn/yuanqu/list/?utm_source=SEM-baidu-PC&amp;utm_medium=PC&amp;utm_platform=ZS&amp;utm_module=QGXN20</pre>
+        </div>
+
+        <div class="doc-section">
+          <h4>六、数据安全与跨电脑使用</h4>
+          <ul>
+            <li>所有数据同时存在两处：浏览器 localStorage（即时使用）+ HTML 文件内嵌数据区（跨电脑携带）</li>
+            <li><b>保存到文件</b>：改完规则后点顶部「💾 保存到文件」按钮（或按 Ctrl+S），把当前数据写回 HTML 文件</li>
+            <li>Chrome/Edge 用户：首次保存会弹出文件选择框，选好位置后后续可直接覆盖原文件</li>
+            <li>其他浏览器：会下载一个带日期的新 HTML 文件，用新文件替换旧文件即可</li>
+            <li>复制 HTML 文件到任何电脑双击打开，规则和域名都跟着走，无需重新配置</li>
+            <li>建议定期用「导出规则」额外备份一份 JSON</li>
+            <li>「清空数据」会清除浏览器缓存和内嵌数据，记得之后点「保存到文件」</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-note">百度竞价落地页URL匹配工具 · 本地离线运行 · 数据存浏览器+HTML文件（点「保存到文件」写回HTML，Ctrl+S 快捷保存）</div>
+
+<div id="toast" class="show" style="border-color: var(--success);">已保存到文件：tool.html</div>
+
+<!-- 内嵌数据区：保存到文件时数据写到这里，复制HTML即带数据 -->
+<script type="application/json" id="embedded-data">
+{
+  "domains": [
+    {
+      "id": "id_1782872754480_pwaour",
+      "url": "https://qgqydoo.xuannaer.com.cn",
+      "remark": "AI-选哪20",
+      "isDefault": false,
+      "enabled": true
+    },
+    {
+      "id": "id_1782887323182_613n04",
+      "url": "https://quanguodoo.xuanzhi.com",
+      "remark": "AI-选哪2/选哪3",
+      "isDefault": false,
+      "enabled": true
+    },
+    {
+      "id": "id_1782887422715_o0r9om",
+      "url": "https://qgyaunqudoo.zhaoshang.net",
+      "remark": "AI-科技26",
+      "isDefault": false,
+      "enabled": true
+    },
+    {
+      "id": "id_1782894321819_cnaak3",
+      "url": "https://qgyaunqu.zhaoshang.net",
+      "remark": "自建站-科技26",
+      "isDefault": false,
+      "enabled": true
+    },
+    {
+      "id": "id_1782897207111_wodzds",
+      "url": "https://quanguo.xuanzhi.com",
+      "remark": "选哪2/选哪3",
+      "isDefault": false,
+      "enabled": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "id_1782887933605_c4qcsl",
+      "type": "keyword_contains",
+      "value": "虹口写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/hongkou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782888083056_klxhow",
+      "type": "keyword_contains",
+      "value": "北外滩写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/beiwaitan/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782888381695_0nhp6u",
+      "type": "keyword_contains",
+      "value": "陆家嘴写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/lujiazui/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782889059106_xkn3r7",
+      "type": "keyword_contains",
+      "value": "黄埔区写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/huangpu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782889080454_ko7ns0",
+      "type": "keyword_contains",
+      "value": "静安区写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/jingan/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782889083638_aki12y",
+      "type": "keyword_contains",
+      "value": "杨浦区写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/yangpu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782889088262_wefd6s",
+      "type": "keyword_contains",
+      "value": "浦东区写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/pudong/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782872775575_z8s1xh",
+      "type": "keyword_contains",
+      "value": "上海写字楼",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/yuanqu/sh/shanghaixzl/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782889758608_lzy8w5",
+      "type": "unit_contains",
+      "value": "昌平-生造",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/index.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "生造词页面"
+    },
+    {
+      "id": "id_1782890414406_3l91p2",
+      "type": "keyword_contains",
+      "value": "未来科学城",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-wlkxc.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891297899_3wa5py",
+      "type": "keyword_contains",
+      "value": "昌发展集团",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-cfz.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891308627_w7gh89",
+      "type": "keyword_contains",
+      "value": "未来中心",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-weilai-center.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891329747_13gbmb",
+      "type": "keyword_contains",
+      "value": "未来视界",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-weilai-vision.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891346883_vmbxa6",
+      "type": "keyword_contains",
+      "value": "未来公元",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-weilai-gongyuan.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891358467_pnfarx",
+      "type": "keyword_contains",
+      "value": "绿地云谷中心",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-lvdicloud.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891365116_nl1j17",
+      "type": "keyword_contains",
+      "value": "昌平机器人产业园",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-robot-park.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891371827_plca3q",
+      "type": "keyword_contains",
+      "value": "未来星科能源谷智造产业园",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-weilai-xingke.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891376948_o81zvm",
+      "type": "keyword_contains",
+      "value": "国际医疗器械城一期",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-med-city-1.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891382459_nsddim",
+      "type": "keyword_contains",
+      "value": "国际医疗器械城二期",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-med-city-2.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891387739_w8207t",
+      "type": "keyword_contains",
+      "value": "合成生物制造转化加速中心",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-synthetic-bio.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891393259_gibi6v",
+      "type": "keyword_contains",
+      "value": "国际精准医学加速中心",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-precision-med.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782891398092_ou8zry",
+      "type": "keyword_contains",
+      "value": "国际精准医学产业园",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/changping/changping-life-valley.html",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782892529932_8av5gn",
+      "type": "keyword_contains",
+      "value": "上海自由贸易试验区临港新片区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/shzmq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782892657684_p1xxyp",
+      "type": "keyword_contains",
+      "value": "上海浦东新区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/shpd/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893776409_wqbvug",
+      "type": "keyword_contains",
+      "value": "上海机器人产业园",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/jqrcyy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893800481_byuhki",
+      "type": "keyword_contains",
+      "value": "长三角发展示范区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/csjsfq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893813529_lvvpgh",
+      "type": "keyword_contains",
+      "value": "张江科学城",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/zjkxc/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893824656_e78fnq",
+      "type": "keyword_contains",
+      "value": "上海漕河泾经开区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/chj/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893838845_4igfwe",
+      "type": "keyword_contains",
+      "value": "上海莘庄工业区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/xzgyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782893852109_e3rjj5",
+      "type": "keyword_contains",
+      "value": "上海高新技术产业开发区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/shgxq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894070796_9o6h56",
+      "type": "keyword_contains",
+      "value": "上海临港新区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/shlgxq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894092724_wil73a",
+      "type": "keyword_contains",
+      "value": "上海生物医药科技产业基地",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/shswyy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "上海",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894101604_v06zqr",
+      "type": "keyword_contains",
+      "value": "江苏南京江北新区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/jsnjjbxq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "江苏",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894107228_s8ejkl",
+      "type": "keyword_contains",
+      "value": "江宁经济技术开发区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/jsjnjkq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "江苏",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894112804_o25sfv",
+      "type": "keyword_contains",
+      "value": "惠州大亚湾经开区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/dywjkq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "广东",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894116908_6943eb",
+      "type": "keyword_contains",
+      "value": "苏州高新区",
+      "domainId": "id_1782872754480_pwaour",
+      "path": "/chouhua/szgxq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "AI页面-苏州高新区",
+      "enabled": true,
+      "region": "江苏",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894337300_y5vli2",
+      "type": "keyword_contains",
+      "value": "东升科技园",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdskjy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782894521199_vyjyqn",
+      "type": "keyword_contains",
+      "value": "大兴生物医药产业基地",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/dxswyycyjd",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true,
+      "region": "北京",
+      "pageType": "真实园区页面"
+    },
+    {
+      "id": "id_1782895988951_t9f12p",
+      "type": "keyword_contains",
+      "value": "昌平生物医药产业园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/cpswyycyy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896053006_9vopej",
+      "type": "keyword_contains",
+      "value": "昌平国际精准医学产业园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/cpgjjjyxcyy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896067182_dry7z1",
+      "type": "keyword_contains",
+      "value": "中关村翠湖科技园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcchkjy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896116902_r2n5j6",
+      "type": "keyword_contains",
+      "value": "上地信息产业基地",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/sdxxcykjy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896130698_y3ljrl",
+      "type": "keyword_contains",
+      "value": "中关村昌平园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgccpy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896144258_qzpmhm",
+      "type": "keyword_contains",
+      "value": "中关村海淀园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgchdy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896161066_g98y8t",
+      "type": "keyword_contains",
+      "value": "中关村延庆园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcyqy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896178754_62xbps",
+      "type": "keyword_contains",
+      "value": "中关村顺义园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcsyy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896189822_324d35",
+      "type": "keyword_contains",
+      "value": "中关村东城园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdcy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896196014_4cmz02",
+      "type": "keyword_contains",
+      "value": "中关村丰台园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcfty",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896200226_xz9m2e",
+      "type": "keyword_contains",
+      "value": "中关村大兴亦庄园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdxy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782896204548_xbwupd",
+      "type": "keyword_contains",
+      "value": "中关村软件园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcrjy",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782897254559_7qopbd",
+      "type": "unit_contains",
+      "value": "广东-佛山",
+      "region": "广东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/foshan",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782897464350_n88ftj",
+      "type": "unit_contains",
+      "value": "广州-南沙-医谷",
+      "region": "广东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/yigu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782897551123_4bqzry",
+      "type": "unit_contains",
+      "value": "广东-广州-增城",
+      "region": "广东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/zengcheng/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782897617318_40k5tj",
+      "type": "unit_contains",
+      "value": "广东-阳江",
+      "region": "广东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/yangjiang/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782976857445_1skup8",
+      "type": "keyword_contains",
+      "value": "北京临空经济核心区",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/bjftkjy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782976886125_8jbdlo",
+      "type": "keyword_contains",
+      "value": "北京经济技术开发区",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/bjjjkfq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782976904358_uhro0b",
+      "type": "keyword_contains",
+      "value": "北京自由贸易试验区",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/bjzymysyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782976918565_8vxs6q",
+      "type": "keyword_contains",
+      "value": "昌平国际精准医学产业园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/cpgjjjyxcyy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782976939196_uy70cc",
+      "type": "keyword_contains",
+      "value": "昌平生物医药产业园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/cpswyycyy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977462540_1pvgfz",
+      "type": "keyword_contains",
+      "value": "大兴经济开发区",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/dxjjkfq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977476759_utuxla",
+      "type": "keyword_contains",
+      "value": "大兴生物医药产业基地",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/dxswyycyjd/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977713908_ycakyd",
+      "type": "keyword_contains",
+      "value": "怀柔科学城",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/hrkxc/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977743251_eszpeg",
+      "type": "keyword_contains",
+      "value": "北京临空经济核心区",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/lkjjhxq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977765435_b7ckle",
+      "type": "keyword_contains",
+      "value": "上地信息产业基地",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/sdxxcykjy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977780847_26ajvu",
+      "type": "keyword_contains",
+      "value": "中关村翠湖科技园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcchkjy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977794075_baxgqe",
+      "type": "keyword_contains",
+      "value": "中关村昌平园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgccpy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977805459_1v8a0g",
+      "type": "keyword_contains",
+      "value": "中关村东城园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdcy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977825194_lxx02g",
+      "type": "keyword_contains",
+      "value": "东升科技园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdskjy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977838546_hcpfdw",
+      "type": "keyword_contains",
+      "value": "中关村大兴园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcdxy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977851518_ylg24i",
+      "type": "keyword_contains",
+      "value": "中关村丰台园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcfty/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977863606_gk9c5r",
+      "type": "keyword_contains",
+      "value": "中关村海淀园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgchdy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977871842_61nywb",
+      "type": "keyword_contains",
+      "value": "北京中关村科学城",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgckxc/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977876818_d1mde2",
+      "type": "keyword_contains",
+      "value": "中关村软件园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcrjy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977881227_dvylg1",
+      "type": "keyword_contains",
+      "value": "中关村顺义园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcsyy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782977885366_h5fn8j",
+      "type": "keyword_contains",
+      "value": "中关村延庆园",
+      "region": "北京",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zgcyqy/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978685696_cqh046",
+      "type": "unit_contains",
+      "value": "江苏-常州",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/changzhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978739112_6jlhld",
+      "type": "unit_contains",
+      "value": "江苏-淮安",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/huaian/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978755324_dcb7g4",
+      "type": "unit_contains",
+      "value": "江苏-淮安-涟水",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/lianshui/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978778240_ksz9vl",
+      "type": "unit_contains",
+      "value": "江苏-南京",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jsnjpark/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978788424_scnxst",
+      "type": "unit_contains",
+      "value": "江苏-南京-高淳",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/gaochun/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978800852_uvupi8",
+      "type": "unit_contains",
+      "value": "江苏-南京-江宁",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jiangning/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978825052_liaj8v",
+      "type": "unit_contains",
+      "value": "江苏-南京-溧水",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/lishui/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978861812_9875cy",
+      "type": "unit_contains",
+      "value": "江苏-南京-溧水-石湫街道",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jsnj/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978872036_agg6n1",
+      "type": "unit_contains",
+      "value": "江苏-南京-六合",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/liuhe/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978885108_qsedty",
+      "type": "unit_contains",
+      "value": "江苏-苏州-常熟",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/changshu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978897284_15t575",
+      "type": "unit_contains",
+      "value": "江苏-苏州-张家港",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zhangjiagang/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978914004_qip0v0",
+      "type": "unit_contains",
+      "value": "江苏-泰州",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jstaizhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978930228_awjdka",
+      "type": "unit_contains",
+      "value": "江苏-泰州-海陵",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/hailing/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978947620_uyjjz4",
+      "type": "unit_contains",
+      "value": "江苏无锡-锡山区东北塘街道",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/wxxsq",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978969596_dh5jpe",
+      "type": "unit_contains",
+      "value": "江苏-徐州",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/xuzhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782978977692_sr4lio",
+      "type": "unit_contains",
+      "value": "江苏-徐州-新沂",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/xinyi/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979581742_yy05ps",
+      "type": "unit_contains",
+      "value": "江苏-苏州",
+      "region": "江苏",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/suzhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979018620_enhj92",
+      "type": "unit_contains",
+      "value": "安徽-合肥",
+      "region": "安徽",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/hefei/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979048932_fh7r65",
+      "type": "unit_contains",
+      "value": "安徽-淮南",
+      "region": "安徽",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/huainan/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979066340_tzrtef",
+      "type": "unit_contains",
+      "value": "安徽-宿州",
+      "region": "安徽",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/suzhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979114755_l6h6f5",
+      "type": "unit_contains",
+      "value": "安徽-宿州-萧县",
+      "region": "安徽",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/xiaoxian/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979133099_ck5g8o",
+      "type": "unit_contains",
+      "value": "安徽-芜湖",
+      "region": "安徽",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/wuhu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979197995_xwk8kw",
+      "type": "unit_contains",
+      "value": "北京-昌平",
+      "region": "北京",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/cpqyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979220599_l8lqmp",
+      "type": "unit_contains",
+      "value": "北京-大兴",
+      "region": "北京",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/dxqyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979236491_yi56yx",
+      "type": "unit_contains",
+      "value": "北京-海淀",
+      "region": "北京",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/hdqyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979250828_y6uu9p",
+      "type": "unit_contains",
+      "value": "北京-怀柔",
+      "region": "北京",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/hrqyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979258651_0k5xw5",
+      "type": "unit_contains",
+      "value": "北京-顺义",
+      "region": "北京",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/syqyq/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979464923_fjjyfq",
+      "type": "unit_contains",
+      "value": "湖南-衡阳",
+      "region": "湖南",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/hengyang/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979610207_bgfhj5",
+      "type": "unit_contains",
+      "value": "山东-德州",
+      "region": "山东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/dezhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979630615_1pd8rp",
+      "type": "unit_contains",
+      "value": "山东-德州-平原",
+      "region": "山东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/pingyuan/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979642999_34jsl7",
+      "type": "unit_contains",
+      "value": "山东-东营",
+      "region": "山东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/dongying/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979655903_6owvdn",
+      "type": "unit_contains",
+      "value": "山东-菏泽",
+      "region": "山东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/heze/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979666234_enjzgg",
+      "type": "unit_contains",
+      "value": "山东-菏泽-曹县",
+      "region": "山东",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/centerpark/caoxian/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979828882_fumpun",
+      "type": "unit_contains",
+      "value": "上海-厂房",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/shfactory/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979850586_03648n",
+      "type": "unit_contains",
+      "value": "上海-奉贤",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/fengxian/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979863514_zx993q",
+      "type": "unit_contains",
+      "value": "上海-临港",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/shlg/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979876226_x4vb9f",
+      "type": "unit_contains",
+      "value": "上海-闵行",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/minhang/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979885322_d6nd56",
+      "type": "unit_contains",
+      "value": "上海-浦东",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/shpd/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979894882_ao1b8m",
+      "type": "unit_contains",
+      "value": "上海-外资",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/shforeign/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979904834_1u63ea",
+      "type": "unit_contains",
+      "value": "上海-医药",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/shmedicine/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979915562_go409k",
+      "type": "unit_contains",
+      "value": "上海-张江",
+      "region": "上海",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zhangjiang/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979965686_jswmwj",
+      "type": "unit_contains",
+      "value": "天津-北辰",
+      "region": "天津",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/beichen/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979981314_l0sqj6",
+      "type": "unit_contains",
+      "value": "天津-武清",
+      "region": "天津",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/wuqing/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782979994186_ze8m90",
+      "type": "unit_contains",
+      "value": "新疆-乌鲁木齐",
+      "region": "新疆",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/wulumuqi/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980017346_bv5hsk",
+      "type": "unit_contains",
+      "value": "浙江-湖州",
+      "region": "浙江",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/huzhou/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980235869_kmnrm6",
+      "type": "unit_contains",
+      "value": "浙江-嘉兴",
+      "region": "浙江",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jiaxing/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980246997_bo8h35",
+      "type": "unit_contains",
+      "value": "浙江-嘉兴-平湖",
+      "region": "浙江",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/zjpinghu/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980258197_euhaz0",
+      "type": "unit_contains",
+      "value": "浙江-金华",
+      "region": "浙江",
+      "pageType": "生造词页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/jinhua/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980763215_lmj64v",
+      "type": "keyword_contains",
+      "value": "安徽淮北高新技术产业开发区",
+      "region": "安徽",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/ahhb/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980784056_i09lm4",
+      "type": "keyword_contains",
+      "value": "繁昌经济开发区",
+      "region": "安徽",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/fanchangpark/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    },
+    {
+      "id": "id_1782980793760_y399i9",
+      "type": "keyword_contains",
+      "value": "毛集经济开发区",
+      "region": "安徽",
+      "pageType": "真实园区页面",
+      "domainId": "id_1782894321819_cnaak3",
+      "path": "/yuanqu/park/ahmj/",
+      "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+      "remark": "",
+      "enabled": true
+    }
+  ],
+  "defaultUrl": "https://sh.xuannaer.com.cn/?utm_source=SEM-baidu-PC&utm_medium=PC",
+  "lastResults": [
+    {
+      "plan": "上海",
+      "unit": "上海-厂房",
+      "kw": "上海厂房",
+      "category": "",
+      "matched": true,
+      "viaDefault": false,
+      "rule": {
+        "id": "id_1782979828882_fumpun",
+        "type": "unit_contains",
+        "value": "上海-厂房",
+        "region": "上海",
+        "pageType": "生造词页面",
+        "domainId": "id_1782894321819_cnaak3",
+        "path": "/yuanqu/park/shfactory/",
+        "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+        "remark": "",
+        "enabled": true
+      },
+      "url": "https://qgyaunqu.zhaoshang.net/yuanqu/park/shfactory/?utm_source=SEM-baidu-PC&utm_medium=PC",
+      "matchType": "单元包含"
+    },
+    {
+      "plan": "上海",
+      "unit": "上海-写字楼",
+      "kw": "上海写字楼",
+      "category": "",
+      "matched": true,
+      "viaDefault": false,
+      "rule": {
+        "id": "id_1782872775575_z8s1xh",
+        "type": "keyword_contains",
+        "value": "上海写字楼",
+        "domainId": "id_1782872754480_pwaour",
+        "path": "/yuanqu/sh/shanghaixzl/",
+        "query": "utm_source=SEM-baidu-PC&utm_medium=PC",
+        "remark": "",
+        "enabled": true,
+        "region": "上海",
+        "pageType": "真实园区页面"
+      },
+      "url": "https://qgqydoo.xuannaer.com.cn/yuanqu/sh/shanghaixzl/?utm_source=SEM-baidu-PC&utm_medium=PC",
+      "matchType": "关键词包含"
+    }
+  ]
+}
+</script>
+
+<script>
+// ============ 数据模型 ============
+let state = {
+  domains: [],
+  rules: [],
+  defaultUrl: '',
+  lastResults: []
+};
+
+const STORAGE_KEY = 'baidu_landing_url_matcher_v1';
+
+// ============ 持久化 ============
+function saveState() {
+  // 1. 写 localStorage（浏览器内即时生效）
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {
+    toast('保存失败：' + e.message, 'danger');
+  }
+  // 2. 更新内嵌数据区（内存中，保存到文件时会用）
+  updateEmbeddedData();
+  // 3. 更新顶部保存按钮提示
+  updateSaveButtonHint();
+}
+
+function updateEmbeddedData() {
+  const el = document.getElementById('embedded-data');
+  if (el) {
+    el.textContent = '\n' + JSON.stringify(state, null, 2) + '\n';
+  }
+}
+
+function loadState() {
+  // 优先级：内嵌数据 > localStorage > 示例数据
+  // 1. 先读内嵌数据（HTML 文件自带，跨电脑可用）
+  try {
+    const el = document.getElementById('embedded-data');
+    if (el) {
+      const raw = el.textContent.trim();
+      if (raw && raw !== '/*EMBEDDED_DATA_PLACEHOLDER*/') {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.domains || parsed.rules)) {
+          state = Object.assign(state, parsed);
+          // 同步写一份到 localStorage，方便浏览器内即时使用
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+          return;
+        }
+      }
+    }
+  } catch(e) {
+    console.error('读取内嵌数据失败', e);
+  }
+
+  // 2. 再读 localStorage（浏览器本地缓存）
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = Object.assign(state, parsed);
+    }
+  } catch(e) {
+    console.error('加载失败', e);
+  }
+
+  // 3. 都没有，加载示例
+  if (state.domains.length === 0 && state.rules.length === 0) {
+    loadSampleData();
+    saveState();
+  }
+}
+
+// ============ 保存到 HTML 文件 ============
+let fileHandle = null; // File System Access API 句柄
+
+async function saveToHtmlFile() {
+  // 先更新一次内嵌数据
+  updateEmbeddedData();
+
+  // 方案1：File System Access API（Chrome/Edge 86+，可写回原文件）
+  if ('showSaveFilePicker' in window) {
+    try {
+      if (!fileHandle) {
+        // 首次保存，让用户选文件位置
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: '百度竞价落地页URL匹配工具.html',
+          types: [{
+            description: 'HTML 文件',
+            accept: {'text/html': ['.html', '.htm']}
+          }]
+        });
+      }
+      const writable = await fileHandle.createWritable();
+      // 完整 HTML 文档
+      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      await writable.write(fullHtml);
+      await writable.close();
+      toast('已保存到文件：' + fileHandle.name, 'success');
+      // 清除"未保存"标记
+      unsavedChanges = false;
+      updateSaveButtonHint();
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') {
+        // 用户取消，静默
+        return;
+      }
+      // File System Access 失败，降级到下载
+      console.warn('File System Access API 失败，降级到下载', e);
+    }
+  }
+
+  // 方案2：降级下载（所有浏览器通用）
+  const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '百度竞价落地页URL匹配工具_' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('已下载新版HTML，请用新文件替换旧文件', 'success');
+  unsavedChanges = false;
+  updateSaveButtonHint();
+}
+
+// 监听数据变化，标记未保存
+let unsavedChanges = false;
+const originalSaveState = saveState;
+saveState = function() {
+  originalSaveState();
+  unsavedChanges = true;
+  updateSaveButtonHint();
+};
+
+function updateSaveButtonHint() {
+  const btn = document.getElementById('btnSaveHtml');
+  if (!btn) return;
+  if (unsavedChanges) {
+    btn.textContent = '💾 保存到文件 *';
+    btn.style.background = 'var(--warning-dim)';
+    btn.style.borderColor = 'var(--warning)';
+    btn.style.color = 'var(--warning)';
+  } else {
+    btn.textContent = '💾 保存到文件';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
+// 离开页面前提示
+window.addEventListener('beforeunload', function(e) {
+  if (unsavedChanges) {
+    e.preventDefault();
+    e.returnValue = '有未保存的修改，确定离开吗？';
+  }
+});
+
+// ============ 示例数据 ============
+function loadSampleData() {
+  state.domains = [
+    { id: genId(), url: 'https://sh.xuannaer.com.cn', remark: '上海站', isDefault: true, enabled: true },
+    { id: genId(), url: 'https://bj.xuannaer.com.cn', remark: '北京站', isDefault: false, enabled: true },
+    { id: genId(), url: 'https://js.xuannaer.com.cn', remark: '江苏站', isDefault: false, enabled: true }
+  ];
+  state.rules = [
+    { id: genId(), type: 'plan_unit_exact', value: '上海-大词|||园区', region: '上海',
+      pageType: '', domainId: state.domains[0].id, path: '/yuanqu/list/', query: 'utm_source=SEM-baidu-PC&utm_medium=PC', remark: '上海大词-园区→上海站园区列表', enabled: true },
+    { id: genId(), type: 'plan_unit_exact', value: '北京-大词|||园区', region: '北京',
+      pageType: '', domainId: state.domains[1].id, path: '/yuanqu/list/', query: 'utm_source=SEM-baidu-PC&utm_medium=PC', remark: '北京大词-园区→北京站园区列表', enabled: true },
+    { id: genId(), type: 'unit_exact', value: '园区-奉贤URL', region: '上海',
+      pageType: '', domainId: state.domains[0].id, path: '/fengxian/yuanqu/list/', query: 'utm_source=SEM-baidu-PC&utm_medium=PC', remark: '奉贤园区专区页', enabled: true },
+    { id: genId(), type: 'unit_contains', value: '厂房', region: '上海',
+      pageType: '', domainId: state.domains[0].id, path: '/changfang/', query: 'utm_source=SEM-baidu-PC&utm_medium=PC', remark: '厂房列表页', enabled: true },
+    { id: genId(), type: 'unit_contains', value: '写字楼', region: '北京',
+      pageType: '', domainId: state.domains[1].id, path: '/xiezilou/', query: 'utm_source=SEM-baidu-PC&utm_medium=PC', remark: '写字楼列表页', enabled: true }
+  ];
+  state.defaultUrl = 'https://sh.xuannaer.com.cn/yuanqu/list/?utm_source=SEM-baidu-PC&utm_medium=PC';
+  saveState();
+}
+
+function loadSampleInput() {
+  const fmt = document.querySelector('input[name="inputFormat"]:checked').value;
+  const samples = {
+    keyword: '奉贤区产业园厂房租赁\n卢湾工业园厂房\n上海写字楼出租\n北京朝阳区产业园\n天津武清仓库出租',
+    pu: '上海-大词\t园区\t奉贤区产业园厂房租赁\n上海-大词\t厂房\t卢湾工业园厂房\n写字楼-上海\t行政区划-黄浦-huangpu\t上海黄浦区写字楼出租\n写字楼-北京\t区域-朝阳\t北京朝阳区写字楼\n仓库-天津-纯\t武清区\t天津武清仓库出租',
+    full: '上海-大词\t园区\t奉贤区产业园厂房租赁\t园区\n上海-大词\t厂房\t卢湾工业园厂房\t厂房\n写字楼-上海\t行政区划-黄浦-huangpu\t上海黄浦区写字楼出租\t写字楼\n仓库-天津-纯\t武清区\t天津武清仓库出租\t仓库'
+  };
+  document.getElementById('inputArea').value = samples[fmt] || samples.keyword;
+}
+
+// ============ 工具函数 ============
+function genId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6); }
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show';
+  if (type === 'danger') el.style.borderColor = 'var(--danger)';
+  else if (type === 'success') el.style.borderColor = 'var(--success)';
+  else el.style.borderColor = 'var(--border)';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.className = ''; }, 2500);
+}
+
+function encodeURIComponentSafe(s) {
+  try { return encodeURIComponent(s); } catch(e) { return s; }
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============ 变量替换 ============
+function replaceVars(str, plan, unit, kw, category) {
+  if (!str) return '';
+  return str
+    .replace(/\{\{kw_raw\}\}/g, kw || '')
+    .replace(/\{\{kw\}\}/g, encodeURIComponentSafe(kw || ''))
+    .replace(/\{\{plan_raw\}\}/g, plan || '')
+    .replace(/\{\{plan\}\}/g, encodeURIComponentSafe(plan || ''))
+    .replace(/\{\{unit_raw\}\}/g, unit || '')
+    .replace(/\{\{unit\}\}/g, encodeURIComponentSafe(unit || ''))
+    .replace(/\{\{category_raw\}\}/g, category || '')
+    .replace(/\{\{category\}\}/g, encodeURIComponentSafe(category || ''));
+}
+
+// ============ 匹配核心 ============
+function buildUrl(rule, plan, unit, kw, category) {
+  const domain = state.domains.find(d => d.id === rule.domainId);
+  const base = (domain && domain.enabled) ? domain.url.replace(/\/+$/, '') : '';
+  let path = replaceVars(rule.path || '', plan, unit, kw, category);
+  if (path && !path.startsWith('/')) path = '/' + path;
+  let query = replaceVars(rule.query || '', plan, unit, kw, category).replace(/^&+/, '').replace(/&+$/, '');
+  let url = base + path;
+  if (query) {
+    url += (url.includes('?') ? '&' : '?') + query;
+  }
+  return url;
+}
+
+function matchOne(plan, unit, kw, category) {
+  const sortedRules = state.rules.slice().sort((a, b) => {
+    // 保持原始顺序，state.rules本身就是优先级顺序
+    return state.rules.indexOf(a) - state.rules.indexOf(b);
+  });
+
+  for (let i = 0; i < state.rules.length; i++) {
+    const rule = state.rules[i];
+    if (!rule.enabled) continue;
+    let matched = false;
+    const v = rule.value || '';
+    try {
+      switch (rule.type) {
+        case 'keyword_exact': matched = (kw === v); break;
+        case 'keyword_contains': matched = v && kw.includes(v); break;
+        case 'keyword_regex': matched = v && new RegExp(v).test(kw); break;
+        case 'unit_exact': matched = v && unit === v; break;
+        case 'unit_contains': matched = v && unit && unit.includes(v); break;
+        case 'plan_exact': matched = v && plan === v; break;
+        case 'plan_contains': matched = v && plan && plan.includes(v); break;
+        case 'plan_unit_exact': {
+          // value 格式：计划|||单元
+          const sep = v.indexOf('|||');
+          if (sep >= 0) {
+            const pv = v.substring(0, sep);
+            const uv = v.substring(sep + 3);
+            matched = (plan === pv && unit === uv);
+          }
+          break;
+        }
+        case 'category_exact': matched = v && category === v; break;
+        case 'category_contains': matched = v && category && category.includes(v); break;
+      }
+    } catch(e) {
+      // 正则错误等
+      matched = false;
+    }
+    if (matched) {
+      return {
+        matched: true,
+        viaDefault: false,
+        rule: rule,
+        url: buildUrl(rule, plan, unit, kw, category),
+        matchType: getTypeName(rule.type)
+      };
+    }
+  }
+  // 默认URL
+  if (state.defaultUrl && state.defaultUrl.trim()) {
+    return {
+      matched: true,
+      viaDefault: true,
+      rule: null,
+      url: replaceVars(state.defaultUrl.trim(), plan, unit, kw, category),
+      matchType: '默认URL'
+    };
+  }
+  return { matched: false, viaDefault: false, rule: null, url: '', matchType: '' };
+}
+
+function getTypeName(t) {
+  const map = {
+    keyword_exact: '关键词精确', keyword_contains: '关键词包含', keyword_regex: '关键词正则',
+    unit_exact: '单元精确', unit_contains: '单元包含',
+    plan_exact: '计划精确', plan_contains: '计划包含',
+    plan_unit_exact: '计划+单元',
+    category_exact: '类别精确', category_contains: '类别包含'
+  };
+  return map[t] || t;
+}
+
+function getTypeColor(t) {
+  if (t.startsWith('keyword')) return 'primary';
+  if (t.startsWith('unit')) return 'accent';
+  if (t.startsWith('plan')) return 'warning';
+  if (t.startsWith('category')) return 'success';
+  return 'muted';
+}
+
+// ============ 执行匹配 ============
+function parseInput(text, format) {
+  const lines = text.split(/\r?\n/).map(l => l.replace(/\r/g, '')).filter(l => l.trim());
+  return lines.map(line => {
+    const parts = line.split('\t');
+    if (format === 'keyword') {
+      return { plan: '', unit: '', kw: parts[0] ? parts[0].trim() : '', category: '' };
+    } else if (format === 'pu') {
+      return { plan: (parts[0]||'').trim(), unit: (parts[1]||'').trim(), kw: (parts[2]||'').trim(), category: '' };
+    } else if (format === 'full') {
+      return { plan: (parts[0]||'').trim(), unit: (parts[1]||'').trim(), kw: (parts[2]||'').trim(), category: (parts[3]||'').trim() };
+    }
+    return { plan: '', unit: '', kw: '', category: '' };
+  }).filter(r => r.kw || r.plan || r.unit);
+}
+
+function runMatch() {
+  const text = document.getElementById('inputArea').value;
+  if (!text.trim()) { toast('请先粘贴关键词', 'danger'); return; }
+  const format = document.querySelector('input[name="inputFormat"]:checked').value;
+  const rows = parseInput(text, format);
+  if (rows.length === 0) { toast('未解析到有效数据', 'danger'); return; }
+
+  const results = rows.map(r => {
+    const m = matchOne(r.plan, r.unit, r.kw, r.category);
+    return Object.assign({}, r, m);
+  });
+  state.lastResults = results;
+  renderResults(results);
+  toast('匹配完成，共 ' + results.length + ' 条', 'success');
+}
+
+function renderResults(results) {
+  const card = document.getElementById('resultCard');
+  const body = document.getElementById('resultBody');
+  card.classList.remove('hidden');
+
+  let matched = 0, unmatched = 0, viaDefault = 0;
+  results.forEach(r => {
+    if (!r.matched) unmatched++;
+    else if (r.viaDefault) viaDefault++;
+    else matched++;
+  });
+  document.getElementById('stat-total').textContent = results.length;
+  document.getElementById('stat-matched').textContent = matched;
+  document.getElementById('stat-unmatched').textContent = unmatched;
+  document.getElementById('stat-default').textContent = viaDefault;
+
+  body.innerHTML = results.map((r, i) => {
+    let statusTag;
+    if (!r.matched) statusTag = '<span class="tag tag-danger">未匹配</span>';
+    else if (r.viaDefault) statusTag = '<span class="tag tag-warning">默认URL</span>';
+    else statusTag = '<span class="tag tag-success">已匹配</span>';
+
+    const ruleTag = r.rule
+      ? '<span class="tag tag-muted">' + escapeHtml(r.rule.remark || r.rule.value || '') + '</span>'
+      : (r.viaDefault ? '<span class="tag tag-muted">兜底</span>' : '<span class="tag tag-muted">—</span>');
+
+    const typeTag = r.matchType
+      ? '<span class="tag tag-' + (r.viaDefault ? 'warning' : getTypeColor(r.rule ? r.rule.type : '')) + '">' + escapeHtml(r.matchType) + '</span>'
+      : '—';
+
+    return '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + escapeHtml(r.plan) + '</td>' +
+      '<td>' + escapeHtml(r.unit) + '</td>' +
+      '<td>' + escapeHtml(r.kw) + '</td>' +
+      '<td>' + escapeHtml(r.category) + '</td>' +
+      '<td>' + escapeHtml(r.rule ? (r.rule.pageType || '') : '') + '</td>' +
+      '<td>' + ruleTag + '</td>' +
+      '<td>' + typeTag + '</td>' +
+      '<td class="url-cell" onclick="copyText(this.textContent)" title="点击复制">' + escapeHtml(r.url || '—') + '</td>' +
+      '<td>' + statusTag + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function clearResults() {
+  document.getElementById('resultCard').classList.add('hidden');
+  state.lastResults = [];
+}
+
+function copyAllResults() {
+  if (!state.lastResults.length) { toast('没有结果可复制', 'danger'); return; }
+  const header = '计划\t单元\t关键词\t类别\t页面类型\t命中规则\t匹配类型\t最终URL\t状态';
+  const lines = state.lastResults.map(r => {
+    const ruleDesc = r.rule ? (r.rule.remark || r.rule.value || '') : (r.viaDefault ? '默认URL' : '');
+    const status = !r.matched ? '未匹配' : (r.viaDefault ? '默认URL' : '已匹配');
+    const pageType = r.rule ? (r.rule.pageType || '') : ''; return [r.plan, r.unit, r.kw, r.category, pageType, ruleDesc, r.matchType, r.url, status].join('\t');
+  });
+  copyText(header + '\n' + lines.join('\n'));
+  toast('已复制 ' + state.lastResults.length + ' 条结果到剪贴板', 'success');
+}
+
+function copyUnmatched() {
+  const unmatched = state.lastResults.filter(r => !r.matched);
+  if (!unmatched.length) { toast('没有未匹配项', 'danger'); return; }
+  const text = unmatched.map(r => [r.plan, r.unit, r.kw, r.category].filter(Boolean).join('\t')).join('\n');
+  copyText(text);
+  toast('已复制 ' + unmatched.length + ' 条未匹配项', 'success');
+}
+
+function exportResults() {
+  if (!state.lastResults.length) { toast('没有结果可导出', 'danger'); return; }
+  const header = '计划,单元,关键词,类别,页面类型,命中规则,匹配类型,最终URL,状态';
+  const lines = state.lastResults.map(r => {
+    const ruleDesc = r.rule ? (r.rule.remark || r.rule.value || '') : (r.viaDefault ? '默认URL' : '');
+    const status = !r.matched ? '未匹配' : (r.viaDefault ? '默认URL' : '已匹配');
+    const pageType = r.rule ? (r.rule.pageType || '') : ''; return [r.plan, r.unit, r.kw, r.category, pageType, ruleDesc, r.matchType, r.url, status]
+      .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',');
+  });
+  const csv = '\ufeff' + header + '\n' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '落地页URL匹配结果_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('CSV 已导出', 'success');
+}
+
+function copyText(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('已复制', 'success'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('已复制', 'success'); } catch(e) { toast('复制失败', 'danger'); }
+    document.body.removeChild(ta);
+  }
+}
+
+// ============ Tab 切换 ============
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+  if (name === 'rules') renderRules();
+  if (name === 'domains') renderDomains();
+}
+
+// ============ 规则渲染 ============
+let selectedRuleIds = new Set();
+
+function renderRules() {
+  const body = document.getElementById('rulesBody');
+  document.getElementById('rules-count').textContent = state.rules.length;
+
+  // 刷新域名筛选下拉
+  refreshDomainFilter();
+  // 刷新地域筛选下拉
+  refreshRegionFilter();
+  // 刷新页面类型筛选下拉
+  refreshPageTypeFilter();
+
+  // 域名筛选
+  const domainFilter = (document.getElementById('ruleDomainFilter') || {}).value || '';
+  // 页面类型筛选
+  const pageTypeFilter = (document.getElementById('rulePageTypeFilter') || {}).value || '';
+  // 地域筛选
+  const regionFilter = (document.getElementById('ruleRegionFilter') || {}).value || '';
+  // 搜索过滤
+  const search = (document.getElementById('ruleSearch') || {}).value || '';
+  const searchLower = search.trim().toLowerCase();
+  let filtered = state.rules;
+  if (regionFilter) {
+    filtered = filtered.filter(r => (r.region || '') === regionFilter);
+  }
+  if (pageTypeFilter) {
+    filtered = filtered.filter(r => (r.pageType || '') === pageTypeFilter);
+  }
+  if (domainFilter) {
+    filtered = filtered.filter(r => (r.domainId || '') === domainFilter);
+  }
+  if (searchLower) {
+    filtered = filtered.filter(r => {
+      return (r.value || '').toLowerCase().includes(searchLower) ||
+             (r.remark || '').toLowerCase().includes(searchLower) ||
+             (r.path || '').toLowerCase().includes(searchLower) ||
+             (r.query || '').toLowerCase().includes(searchLower) ||
+             (r.region || '').toLowerCase().includes(searchLower) ||
+             (r.pageType || '').toLowerCase().includes(searchLower) ||
+             (state.domains.find(d => d.id === r.domainId) || {}).url.toLowerCase().includes(searchLower) ||
+             getTypeName(r.type).includes(searchLower);
+    });
+  }
+
+  if (filtered.length === 0) {
+    body.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="icon">📋</div>' + ((searchLower || regionFilter) ? '没有匹配筛选条件的规则' : '暂无规则，点击右上角「添加规则」或用「批量粘贴建规则」开始配置') + '</div></td></tr>';
+    updateBatchBar();
+    return;
+  }
+
+  body.innerHTML = filtered.map((r) => {
+    const i = state.rules.indexOf(r);
+    const opts = ['keyword_exact','keyword_contains','keyword_regex','unit_exact','unit_contains','plan_exact','plan_contains','plan_unit_exact','category_exact','category_contains']
+      .map(t => '<option value="' + t + '"' + (r.type === t ? ' selected' : '') + '>' + getTypeName(t) + '</option>').join('');
+
+    const domainSel = state.domains.length
+      ? '<select data-field="domainId" data-id="' + r.id + '">' +
+        state.domains.map(d => '<option value="' + d.id + '"' + (r.domainId === d.id ? ' selected' : '') + '>' + escapeHtml(d.url) + '</option>').join('') +
+        '</select>'
+      : '<span style="color:var(--danger);font-size:12px;">请先添加域名</span>';
+
+    const checked = selectedRuleIds.has(r.id) ? ' checked' : '';
+    const remarkHint = r.remark ? ' title="' + escapeHtml(r.remark) + '"' : '';
+
+    return '<tr data-id="' + r.id + '" draggable="true"' + remarkHint + '>' +
+      '<td><input type="checkbox" class="rule-checkbox" data-id="' + r.id + '"' + checked + ' onchange="toggleSelectRule(\'' + r.id + '\', this.checked)"></td>' +
+      '<td><span class="drag-handle" title="拖拽排序">⠿</span> ' + (i + 1) + '</td>' +
+      '<td><select data-field="type" data-id="' + r.id + '">' + opts + '</select></td>' +
+      '<td><input type="text" data-field="value" data-id="' + r.id + '" value="' + escapeHtml(r.value) + '" placeholder="匹配值"></td>' +
+      '<td><input type="text" data-field="region" data-id="' + r.id + '" value="' + escapeHtml(r.region || '') + '" placeholder="上海" style="font-size:12px;"></td>' +
+      '<td><select data-field="pageType" data-id="' + r.id + '">' + ['生造词页面', '真实园区页面', '通用页面'].map(t => '<option value="' + t + '"' + ((r.pageType || '') === t ? ' selected' : '') + '>' + t + '</option>').join('') + '<option value=""' + ((r.pageType || '') === '' ? ' selected' : '') + '>-</option></select></td>' +
+      '<td>' + domainSel + '</td>' +
+      '<td><input type="text" data-field="path" data-id="' + r.id + '" value="' + escapeHtml(r.path) + '" placeholder="/yuanqu/list/"></td>' +
+      '<td><input type="text" data-field="query" data-id="' + r.id + '" value="' + escapeHtml(r.query) + '" placeholder="utm_source=SEM-baidu-PC&utm_medium=PC"></td>' +
+      '<td><label class="switch"><input type="checkbox" data-field="enabled" data-id="' + r.id + '"' + (r.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-icon" onclick="duplicateRule(\'' + r.id + '\')" title="复制此规则">⎘</button> ' +
+        '<button class="btn btn-sm btn-icon" onclick="editRemark(\'' + r.id + '\')" title="备注">✎</button> ' +
+        '<button class="btn btn-sm btn-icon btn-danger" onclick="deleteRule(\'' + r.id + '\')" title="删除">✕</button>' +
+      '</td>' +
+      '</tr>';
+  }).join('');
+
+  // 绑定输入事件
+  body.querySelectorAll('input[data-field],select[data-field]').forEach(el => {
+    const ev = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(ev, function() {
+      const id = this.dataset.id;
+      const field = this.dataset.field;
+      const rule = state.rules.find(x => x.id === id);
+      if (!rule) return;
+      rule[field] = (this.type === 'checkbox') ? this.checked : this.value;
+      saveState();
+    });
+  });
+
+  // 拖拽排序
+  enableDragSort(body, 'rules');
+  updateBatchBar();
+}
+
+// === 批量选择 ===
+function toggleSelectRule(id, checked) {
+  if (checked) selectedRuleIds.add(id);
+  else selectedRuleIds.delete(id);
+  updateBatchBar();
+}
+
+function toggleSelectAll(checked) {
+  if (checked) {
+    state.rules.forEach(r => selectedRuleIds.add(r.id));
+  } else {
+    selectedRuleIds.clear();
+  }
+  renderRules();
+}
+
+function clearSelection() {
+  selectedRuleIds.clear();
+  const selectAll = document.getElementById('ruleSelectAll');
+  if (selectAll) selectAll.checked = false;
+  renderRules();
+}
+
+function updateBatchBar() {
+  const bar = document.getElementById('batchBar');
+  const countEl = document.getElementById('batchSelectedCount');
+  if (!bar) return;
+  if (selectedRuleIds.size > 0) {
+    bar.style.display = 'flex';
+    if (countEl) countEl.textContent = '已选 ' + selectedRuleIds.size + ' 条';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function batchEnable(enable) {
+  let n = 0;
+  state.rules.forEach(r => {
+    if (selectedRuleIds.has(r.id)) { r.enabled = enable; n++; }
+  });
+  saveState();
+  renderRules();
+  toast('已' + (enable ? '启用' : '禁用') + ' ' + n + ' 条规则', 'success');
+}
+
+function batchDelete() {
+  if (selectedRuleIds.size === 0) return;
+  if (!confirm('确认删除选中的 ' + selectedRuleIds.size + ' 条规则？此操作不可恢复。')) return;
+  state.rules = state.rules.filter(r => !selectedRuleIds.has(r.id));
+  selectedRuleIds.clear();
+  saveState();
+  renderRules();
+  toast('批量删除完成', 'success');
+}
+
+// 批量修改域名
+function batchChangeDomain() {
+  if (selectedRuleIds.size === 0) { toast('请先选择规则', 'danger'); return; }
+  const domainOptions = state.domains.map(d => {
+    const label = d.remark ? d.url + ' (' + d.remark + ')' : d.url;
+    return '<option value="' + d.id + '">' + escapeHtml(label) + '</option>';
+  }).join('');
+  const defaultDomain = state.domains.find(d => d.isDefault) || state.domains[0];
+  const defaultId = defaultDomain ? defaultDomain.id : '';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;min-width:360px;max-width:480px;';
+  modal.innerHTML = '<h3 style="margin:0 0 16px 0;color:var(--text);">批量修改域名</h3>' +
+    '<p style="color:var(--text-muted);font-size:13px;margin:0 0 12px 0;">将 <b style="color:var(--primary);">' + selectedRuleIds.size + '</b> 条选中规则的域名统一修改为：</p>' +
+    '<select id="batchDomainSelect" style="width:100%;padding:8px 12px;font-size:14px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);">' + domainOptions + '</select>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">' +
+    '<button class="btn btn-sm" id="batchDomainCancel">取消</button>' +
+    '<button class="btn btn-sm btn-primary" id="batchDomainConfirm">确认修改</button>' +
+    '</div>';
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const sel = modal.querySelector('#batchDomainSelect');
+  sel.value = defaultId;
+
+  modal.querySelector('#batchDomainConfirm').onclick = function() {
+    const newDomainId = sel.value;
+    if (!newDomainId) { toast('请选择域名', 'danger'); return; }
+    let n = 0;
+    state.rules.forEach(r => {
+      if (selectedRuleIds.has(r.id)) { r.domainId = newDomainId; n++; }
+    });
+    saveState();
+    renderRules();
+    overlay.remove();
+    toast('已修改 ' + n + ' 条规则的域名', 'success');
+  };
+  modal.querySelector('#batchDomainCancel').onclick = function() {
+    overlay.remove();
+  };
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+}
+
+function batchDuplicate() {
+  const toCopy = state.rules.filter(r => selectedRuleIds.has(r.id));
+  if (toCopy.length === 0) return;
+  toCopy.forEach(r => {
+    state.rules.push(Object.assign({}, r, { id: genId() }));
+  });
+  selectedRuleIds.clear();
+  saveState();
+  renderRules();
+  toast('已复制 ' + toCopy.length + ' 条规则（添加到列表末尾）', 'success');
+}
+
+// === 单条复制 ===
+function duplicateRule(id) {
+  const rule = state.rules.find(r => r.id === id);
+  if (!rule) return;
+  const idx = state.rules.indexOf(rule);
+  const copy = Object.assign({}, rule, { id: genId() });
+  state.rules.splice(idx + 1, 0, copy);
+  saveState();
+  renderRules();
+  toast('已复制到原规则下方', 'success');
+}
+
+function addRule() {
+  const defaultDomain = state.domains.find(d => d.isDefault) || state.domains[0];
+  // 取当前域名筛选值作为新规则的默认域名
+  const currentDomainFilter = (document.getElementById('ruleDomainFilter') || {}).value || '';
+  // 取当前页面类型筛选值作为新规则的默认页面类型
+  const currentPageType = (document.getElementById('rulePageTypeFilter') || {}).value || '';
+  // 取当前地域筛选值作为新规则的默认地域
+  const currentRegion = (document.getElementById('ruleRegionFilter') || {}).value || '';
+  state.rules.push({
+    id: genId(),
+    type: 'keyword_contains',
+    value: '',
+    region: currentRegion,
+    pageType: currentPageType,
+    domainId: currentDomainFilter || (defaultDomain ? defaultDomain.id : ''),
+    path: '/yuanqu/list/',
+    query: 'utm_source=SEM-baidu-PC&utm_medium=PC',
+    remark: '',
+    enabled: true
+  });
+  saveState();
+  renderRules();
+  toast('已添加规则（优先级最低）', 'success');
+}
+
+// 刷新地域筛选下拉
+function refreshRegionFilter() {
+  const sel = document.getElementById('ruleRegionFilter');
+  if (!sel) return;
+  const current = sel.value;
+  // 收集所有非空地域
+  const regions = [];
+  const seen = new Set();
+  state.rules.forEach(r => {
+    if (r.region && r.region.trim() && !seen.has(r.region.trim())) {
+      regions.push(r.region.trim());
+      seen.add(r.region.trim());
+    }
+  });
+  regions.sort();
+  let opts = '<option value="">全部地域</option>';
+  regions.forEach(r => {
+    opts += '<option value="' + escapeHtml(r) + '"' + (r === current ? ' selected' : '') + '>' + escapeHtml(r) + '</option>';
+  });
+  sel.innerHTML = opts;
+  // 如果当前选中的地域已被删除，恢复为全部
+  if (current && !seen.has(current)) {
+    sel.value = '';
+  }
+}
+
+// 刷新页面类型筛选下拉
+function refreshPageTypeFilter() {
+  const sel = document.getElementById('rulePageTypeFilter');
+  if (!sel) return;
+  const current = sel.value;
+  // 收集所有非空页面类型
+  const pageTypes = [];
+  const seen = new Set();
+  state.rules.forEach(r => {
+    if (r.pageType && r.pageType.trim() && !seen.has(r.pageType.trim())) {
+      pageTypes.push(r.pageType.trim());
+      seen.add(r.pageType.trim());
+    }
+  });
+  pageTypes.sort();
+  let opts = '<option value="">全部页面类型</option>';
+  pageTypes.forEach(r => {
+    opts += '<option value="' + escapeHtml(r) + '"' + (r === current ? ' selected' : '') + '>' + escapeHtml(r) + '</option>';
+  });
+  sel.innerHTML = opts;
+  if (current && !seen.has(current)) {
+    sel.value = '';
+  }
+}
+
+// 刷新域名筛选下拉
+function refreshDomainFilter() {
+  const sel = document.getElementById('ruleDomainFilter');
+  if (!sel) return;
+  const current = sel.value;
+  let opts = '<option value="">全部域名</option>';
+  state.domains.forEach(d => {
+    const label = d.remark ? escapeHtml(d.url) + ' (' + escapeHtml(d.remark) + ')' : escapeHtml(d.url);
+    opts += '<option value="' + d.id + '"' + (d.id === current ? ' selected' : '') + '>' + label + '</option>';
+  });
+  sel.innerHTML = opts;
+  if (current && !state.domains.find(d => d.id === current)) {
+    sel.value = '';
+  }
+}
+
+function deleteRule(id) {
+  if (!confirm('确认删除这条规则？')) return;
+  state.rules = state.rules.filter(r => r.id !== id);
+  saveState();
+  renderRules();
+  toast('已删除', 'success');
+}
+
+function editRemark(id) {
+  const rule = state.rules.find(r => r.id === id);
+  if (!rule) return;
+  const v = prompt('请输入备注（用于结果展示）：', rule.remark || '');
+  if (v !== null) {
+    rule.remark = v;
+    saveState();
+    renderRules();
+  }
+}
+
+// === 批量粘贴建规则 ===
+function toggleBatchPaste() {
+  const card = document.getElementById('batchPasteCard');
+  card.classList.toggle('hidden');
+}
+
+function updateBatchPasteHint() {
+  const fmt = document.querySelector('input[name="batchFormat"]:checked').value;
+  const hints = {
+    puu: '三列 Tab 分隔：<b>计划名</b> <b>单元名</b> <b>完整URL</b>。匹配类型自动设为「计划+单元」，value格式：<code>计划|||单元</code>。<br>示例：<span class="mono">上海-大词&nbsp;&nbsp;园区&nbsp;&nbsp;https://sh.xuannaer.com.cn/yuanqu/list/?utm_source=SEM-baidu-PC</span>',
+    uu: '两列 Tab 分隔：<b>单元名</b> <b>完整URL</b>。匹配类型自动设为「单元精确」。<br>示例：<span class="mono">园区-奉贤URL&nbsp;&nbsp;https://sh.xuannaer.com.cn/fengxian/yuanqu/list/?utm_source=SEM-baidu-PC</span>',
+    custom: '自定义列格式：每行用 Tab 分隔，列顺序为 <b>匹配类型</b> <b>匹配值</b> <b>完整URL</b>。<br>匹配类型可选：keyword_exact, keyword_contains, keyword_regex, unit_exact, unit_contains, plan_exact, plan_contains, plan_unit_exact, category_exact, category_contains<br>示例：<span class="mono">unit_contains&nbsp;&nbsp;厂房&nbsp;&nbsp;https://sh.xuannaer.com.cn/changfang/?utm_source=SEM-baidu-PC</span>'
+  };
+  document.getElementById('batchPasteHint').innerHTML = hints[fmt];
+  updateBatchPasteCount();
+}
+
+function updateBatchPasteCount() {
+  const text = (document.getElementById('batchPasteArea') || {}).value || '';
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const el = document.getElementById('batchPasteCount');
+  if (el) el.textContent = lines.length + ' 行';
+}
+
+function batchPasteCreate() {
+  const text = document.getElementById('batchPasteArea').value;
+  if (!text.trim()) { toast('请先粘贴内容', 'danger'); return; }
+  const fmt = document.querySelector('input[name="batchFormat"]:checked').value;
+  const lines = text.split(/\r?\n/).map(l => l.replace(/\r/g, '')).filter(l => l.trim());
+
+  if (lines.length === 0) { toast('没有有效行', 'danger'); return; }
+  if (state.domains.length === 0) { toast('请先到「域名管理」添加域名', 'danger'); return; }
+
+  let added = 0, failed = 0;
+  const defaultDomain = state.domains.find(d => d.isDefault) || state.domains[0];
+
+  lines.forEach(line => {
+    const parts = line.split('\t');
+    let rule = null;
+
+    if (fmt === 'puu') {
+      // 计划 单元 URL
+      if (parts.length >= 3) {
+        const plan = parts[0].trim();
+        const unit = parts[1].trim();
+        const url = parts[2].trim();
+        if (plan && unit && url) {
+          const parsed = parseUrlToRule(url);
+          rule = {
+            id: genId(),
+            type: 'plan_unit_exact',
+            value: plan + '|||' + unit,
+            domainId: parsed.domainId || defaultDomain.id,
+            path: parsed.path,
+            query: parsed.query,
+            remark: '[批量] ' + plan + '/' + unit,
+            enabled: true
+          };
+        }
+      }
+    } else if (fmt === 'uu') {
+      // 单元 URL
+      if (parts.length >= 2) {
+        const unit = parts[0].trim();
+        const url = parts[1].trim();
+        if (unit && url) {
+          const parsed = parseUrlToRule(url);
+          rule = {
+            id: genId(),
+            type: 'unit_exact',
+            value: unit,
+            domainId: parsed.domainId || defaultDomain.id,
+            path: parsed.path,
+            query: parsed.query,
+            remark: '[批量] ' + unit,
+            enabled: true
+          };
+        }
+      }
+    } else if (fmt === 'custom') {
+      // 类型 值 URL
+      if (parts.length >= 3) {
+        const type = parts[0].trim();
+        const value = parts[1].trim();
+        const url = parts[2].trim();
+        const validTypes = ['keyword_exact','keyword_contains','keyword_regex','unit_exact','unit_contains','plan_exact','plan_contains','plan_unit_exact','category_exact','category_contains'];
+        if (validTypes.includes(type) && value && url) {
+          const parsed = parseUrlToRule(url);
+          rule = {
+            id: genId(),
+            type: type,
+            value: value,
+            domainId: parsed.domainId || defaultDomain.id,
+            path: parsed.path,
+            query: parsed.query,
+            remark: '[批量] ' + value,
+            enabled: true
+          };
+        }
+      }
+    }
+
+    if (rule) {
+      state.rules.push(rule);
+      added++;
+    } else {
+      failed++;
+    }
+  });
+
+  saveState();
+  renderRules();
+  document.getElementById('batchPasteArea').value = '';
+  updateBatchPasteCount();
+
+  if (added > 0) {
+    toast('已添加 ' + added + ' 条规则' + (failed > 0 ? '，' + failed + ' 行格式错误已跳过' : ''), 'success');
+  } else {
+    toast('全部 ' + failed + ' 行格式错误，请检查列数和 URL', 'danger');
+  }
+}
+
+// 把完整 URL 拆成 domainId + path + query
+function parseUrlToRule(url) {
+  try {
+    // 去掉首尾空格
+    url = url.trim();
+    let netloc = '', path = '', query = '';
+    // 提取协议
+    const m = url.match(/^https?:\/\/([^\/]+)(\/[^?]*)?(\?.*)?$/);
+    if (m) {
+      netloc = m[1];
+      path = m[2] || '/';
+      query = m[3] ? m[3].substring(1) : '';
+    } else {
+      // 不规范URL，整个当path
+      path = url;
+    }
+    // 找匹配的域名
+    const domain = state.domains.find(d => {
+      try {
+        const dm = d.url.match(/^https?:\/\/([^\/]+)/);
+        return dm && dm[1] === netloc;
+      } catch { return false; }
+    });
+    return {
+      domainId: domain ? domain.id : '',
+      path: path,
+      query: query
+    };
+  } catch(e) {
+    return { domainId: '', path: url, query: '' };
+  }
+}
+
+// ============ 域名渲染 ============
+function renderDomains() {
+  const body = document.getElementById('domainsBody');
+  document.getElementById('domains-count').textContent = state.domains.length;
+
+  if (state.domains.length === 0) {
+    body.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">🌐</div>暂无域名，点击右上角「添加域名」</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = state.domains.map(d => {
+    return '<tr>' +
+      '<td><input type="radio" name="defaultDomain" value="' + d.id + '"' + (d.isDefault ? ' checked' : '') + ' onchange="setDefaultDomain(\'' + d.id + '\')"></td>' +
+      '<td><input type="text" data-field="url" data-id="' + d.id + '" value="' + escapeHtml(d.url) + '" placeholder="https://www.example.com"></td>' +
+      '<td><input type="text" data-field="remark" data-id="' + d.id + '" value="' + escapeHtml(d.remark) + '" placeholder="域名备注"></td>' +
+      '<td><label class="switch"><input type="checkbox" data-field="enabled" data-id="' + d.id + '"' + (d.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>' +
+      '<td><button class="btn btn-sm btn-icon btn-danger" onclick="deleteDomain(\'' + d.id + '\')">✕</button></td>' +
+      '</tr>';
+  }).join('');
+
+  body.querySelectorAll('input').forEach(el => {
+    const ev = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(ev, function() {
+      if (this.type === 'radio') return;
+      const id = this.dataset.id;
+      const field = this.dataset.field;
+      const d = state.domains.find(x => x.id === id);
+      if (!d) return;
+      d[field] = (this.type === 'checkbox') ? this.checked : this.value;
+      saveState();
+    });
+  });
+}
+
+function addDomain() {
+  state.domains.push({
+    id: genId(),
+    url: 'https://',
+    remark: '',
+    isDefault: state.domains.length === 0,
+    enabled: true
+  });
+  saveState();
+  renderDomains();
+}
+
+function deleteDomain(id) {
+  const used = state.rules.filter(r => r.domainId === id).length;
+  let msg = '确认删除这个域名？';
+  if (used) msg += '\n警告：有 ' + used + ' 条规则在使用此域名，删除后这些规则将无法生成有效URL。';
+  if (!confirm(msg)) return;
+  state.domains = state.domains.filter(d => d.id !== id);
+  saveState();
+  renderDomains();
+}
+
+function setDefaultDomain(id) {
+  state.domains.forEach(d => d.isDefault = (d.id === id));
+  saveState();
+}
+
+// ============ 默认URL ============
+function saveDefaultUrl() {
+  state.defaultUrl = document.getElementById('defaultUrl').value;
+  saveState();
+}
+
+function loadDefaultUrlUI() {
+  document.getElementById('defaultUrl').value = state.defaultUrl || '';
+}
+
+// ============ 拖拽排序 ============
+function enableDragSort(tbody, type) {
+  let dragId = null;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('dragstart', function() {
+      dragId = this.dataset.id;
+      this.classList.add('dragging');
+    });
+    tr.addEventListener('dragend', function() {
+      this.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(t => t.classList.remove('drag-over'));
+    });
+    tr.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      this.classList.add('drag-over');
+    });
+    tr.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over');
+    });
+    tr.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      if (!dragId || dragId === this.dataset.id) return;
+      const fromIdx = state.rules.findIndex(r => r.id === dragId);
+      const toIdx = state.rules.findIndex(r => r.id === this.dataset.id);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [moved] = state.rules.splice(fromIdx, 1);
+      state.rules.splice(toIdx, 0, moved);
+      saveState();
+      renderRules();
+      toast('优先级已调整', 'success');
+    });
+  });
+}
+
+// ============ 导入导出 ============
+function exportConfig() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '百度竞价URL匹配规则_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('规则已导出', 'success');
+}
+
+function importConfig(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.domains || !data.rules) throw new Error('配置格式不正确');
+      if (!confirm('导入将覆盖当前所有规则和域名，是否继续？\n\n导入后记得点「保存到文件」把数据写回HTML。')) return;
+      state = Object.assign(state, data);
+      saveState();
+      renderRules();
+      renderDomains();
+      loadDefaultUrlUI();
+      toast('规则导入成功（记得点「保存到文件」）', 'success');
+    } catch(err) {
+      toast('导入失败：' + err.message, 'danger');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData() {
+  if (!confirm('确认清空所有规则、域名和默认URL？此操作不可恢复！\n\n建议先「导出规则」或「保存到文件」备份。')) return;
+  if (!confirm('再次确认：真的要清空全部数据吗？')) return;
+  state = { domains: [], rules: [], defaultUrl: '', lastResults: [] };
+  localStorage.removeItem(STORAGE_KEY);
+  // 同步清空内嵌数据区
+  const el = document.getElementById('embedded-data');
+  if (el) el.textContent = '/*EMBEDDED_DATA_PLACEHOLDER*/';
+  renderRules();
+  renderDomains();
+  loadDefaultUrlUI();
+  clearResults();
+  unsavedChanges = true;
+  updateSaveButtonHint();
+  toast('已清空全部数据（记得点「保存到文件」生效到HTML）', 'success');
+}
+
+// ============ 输入提示 ============
+function updateInputHint() {
+  const fmt = document.querySelector('input[name="inputFormat"]:checked').value;
+  const hints = {
+    keyword: '每行一个关键词。示例：<br><span class="mono">奉贤区产业园厂房租赁</span><br><span class="mono">卢湾工业园厂房</span>',
+    pu: '三列 Tab 分隔（计划 / 单元 / 关键词），可直接从 Excel 复制 3 列。示例：<br><span class="mono">上海-大词\t园区\t奉贤区产业园厂房租赁</span><br><span class="mono">写字楼-上海\t行政区划-黄浦-huangpu\t上海黄浦区写字楼出租</span>',
+    full: '四列 Tab 分隔（计划 / 单元 / 关键词 / 业务类别）。示例：<br><span class="mono">上海-大词\t园区\t奉贤区产业园厂房租赁\t园区</span><br><span class="mono">仓库-天津-纯\t武清区\t天津武清仓库出租\t仓库</span>'
+  };
+  document.getElementById('inputHint').innerHTML = hints[fmt];
+}
+
+// ============ 初始化 ============
+loadState();
+loadDefaultUrlUI();
+updateInputHint();
+updateBatchPasteHint();
+// 绑定批量粘贴输入框行数统计
+document.addEventListener('DOMContentLoaded', function() {
+  const ta = document.getElementById('batchPasteArea');
+  if (ta) ta.addEventListener('input', updateBatchPasteCount);
+});
+renderRules();
+renderDomains();
+updateSaveButtonHint();
+
+// 快捷键：Ctrl+S 保存到文件
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveToHtmlFile();
+  }
+});
+</script>
+
+
+</body></html>
