@@ -1,5 +1,3 @@
-SKILL.md
-name: baidu-landing-url-matcher
 description: 百度竞价/SEM 落地页 URL 匹配工具。批量把关键词（支持计划+单元+关键词+类别）匹配到对应落地页 URL，支持多域名、多级优先匹配（关键词/单元/计划/类别/计划+单元组合 10 种匹配类型）、变量替换、规则导入导出。触发词：落地页URL匹配、URL匹配、关键词匹配URL、落地页匹配、百度竞价URL、SEM URL匹配、选词配URL、匹配落地页。
 百度竞价落地页 URL 匹配助手
 这个 Skill 做什么
