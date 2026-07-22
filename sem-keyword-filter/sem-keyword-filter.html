@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEM搜索词筛词工具</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0c4a6e 100%);background-attachment:fixed;min-height:100vh}
+  .card{background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  .grad-text{background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55}
+  textarea:focus{outline:2px solid #3b82f6;outline-offset:1px}
+  .tab-btn{transition:all .2s ease;cursor:pointer;white-space:nowrap}
+  .tab-btn.active{background:linear-gradient(90deg,#3b82f6,#8b5cf6);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,.35)}
+  .tab-btn:not(.active):hover{background:#e0e7ff}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;margin:1px}
+  .tag-risk-generic{background:#fecdd3;color:#9f1239;font-weight:600;border:1px solid #f43f5e}
+  .tag-risk-competitor{background:#fecdd3;color:#9f1239;font-weight:600;border:1px solid #be123c}
+  .tag-risk{background:#fecdd3;color:#9f1239;font-weight:600;border:1px solid #e11d48}
+  .tag-geo{background:#d1fae5;color:#065f46}
+  .tag-park{background:#cffafe;color:#0e7490}
+  .tag-land{background:#e0e7ff;color:#3730a3}
+  .tag-factory{background:#fef3c7;color:#92400e}
+  .tag-warehouse{background:#fee2e2;color:#991b1b}
+  .tag-office{background:#f3e8ff;color:#6b21a8}
+  .tag-generic{background:#f1f5f9;color:#475569}
+  .tag-price{background:#fce7f3;color:#9d174d}
+  .tag-question{background:#d1fae5;color:#065f46}
+  .tag-consult{background:#cffafe;color:#0e7490}
+  .tag-noise{background:#e5e7eb;color:#64748b}
+  .tag-longtail{background:#f1f5f9;color:#475569}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#1e3a8a;color:#fff;padding:10px 12px;text-align:left;font-weight:600;position:sticky;top:0;z-index:10}
+  td{padding:8px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+  tr:hover td{background:#f0f9ff}
+  .lexicon-row{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:start;margin-bottom:8px}
+  .lexicon-row label{padding-top:6px;font-weight:600;color:#1e3a8a;font-size:13px}
+  .stat-card{background:linear-gradient(135deg,#fff 0%,#eff6ff 100%);border:1px solid #dbeafe;border-radius:10px;padding:12px;text-align:center;transition:transform .2s;flex:1 1 80px;min-width:80px;max-width:130px}
+  .stat-card:hover{transform:translateY(-2px)}
+  .stat-num{font-size:22px;font-weight:700;color:#1e3a8a}
+  .stat-label{font-size:11px;color:#64748b;margin-top:2px}
+  .toast{position:fixed;top:24px;right:24px;background:#1e3a8a;color:#fff;padding:10px 18px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+  details summary{cursor:pointer;padding:10px 14px;background:#1e3a8a;color:#fff;border-radius:8px;font-weight:600;font-size:14px}
+  details[open] summary{border-radius:8px 8px 0 0}
+  details[open] .lexicon-body{border:1px solid #1e3a8a;border-top:none;border-radius:0 0 8px 8px;padding:14px}
+  .scroll-x{overflow-x:auto}
+  ::-webkit-scrollbar{height:8px;width:8px}
+  ::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px}
+  ::-webkit-scrollbar-track{background:#e2e8f0}
+</style>
+</head>
+<body class="text-slate-800">
+<div id="toast" class="toast"></div>
+
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- 顶部标题 -->
+  <header class="text-center mb-6">
+    <h1 class="text-3xl md:text-4xl font-bold grad-text mb-2">SEM 搜索词筛词工具</h1>
+    <p class="text-blue-100 text-sm md:text-base">输入「关键词列 + 搜索词列」→ 关键词和搜索词各自分词拆分 → 字段级智能对比相似度 → 判断是否同一意向 → 按词性分类切割输出（风控/园区/土地/厂房/仓库/写字楼/价格/咨询/地域/疑问/通用/噪音）</p>
+  </header>
+
+  <!-- 词库配置 持久化工具条（仅作用于词库，不影响搜索词数据板块） -->
+  <div class="card p-3 mb-5 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="text-sm font-semibold text-slate-700">词库配置</span>
+      <label class="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 cursor-pointer">📂 上传词库JSON<input id="fileLexTop" type="file" accept=".json,application/json" class="hidden"></label>
+      <button id="btnSaveTop" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100">💾 保存配置（Ctrl+S）</button>
+      <button id="btnExportLexTop" class="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">导出词库JSON</button>
+    </div>
+    <span id="saveStatus" class="text-xs text-slate-500">未保存改动</span>
+  </div>
+
+  <!-- 输入区 -->
+  <section class="card p-5 mb-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg font-bold text-slate-800">① 数据输入</h2>
+      <div class="flex gap-2">
+        <button id="btnExample" class="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">载入示例</button>
+        <button id="btnClear" class="text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">清空</button>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-1.5 text-slate-700">数据粘贴区 <span class="text-xs text-slate-400">(从Excel复制"关键词+搜索词"两列，直接粘贴到这里)</span></label>
+      <textarea id="unifiedInput" rows="10" class="w-full p-3 border border-slate-300 rounded-lg bg-white" placeholder="上海南汇工业园区	上海南汇工工业园联系方式&#10;闵行莘庄工业区	上海莘庄工业园区logo&#10;装修	北京二手房装修多少钱"></textarea>
+      <div class="text-xs text-slate-500 mt-1">已识别 <span id="rowCount" class="font-semibold text-blue-700">0</span> 行 · 两列 <span id="twoColCount" class="font-semibold text-blue-700">0</span> 行 · 单列 <span id="oneColCount" class="font-semibold text-blue-700">0</span> 行</div>
+    </div>
+    <div class="mt-4 flex items-center justify-between flex-wrap gap-3">
+      <p class="text-xs text-slate-500">支持Excel两列粘贴（关键词+搜索词，制表符分隔自动识别）；也支持只粘贴搜索词单列（无关键词匹配时附加内容=整个搜索词）</p>
+      <button id="btnAnalyze" class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-violet-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition">▶ 开始筛词分析</button>
+    </div>
+  </section>
+
+  <!-- 词库配置区 -->
+  <section class="card p-5 mb-5">
+    <details>
+      <summary>② 词库配置（点击展开/收起） — 已内置园区招商行业默认词库，可自由编辑</summary>
+      <div class="lexicon-body">
+        <div class="grid md:grid-cols-2 gap-x-6">
+          <div class="lexicon-row">
+            <label style="color:#9f1239">⚠️ 风控-通用</label>
+            <textarea id="lex-risk_generic" rows="3" class="w-full p-2 border border-rose-300 rounded text-xs bg-rose-50" placeholder="不能买的通用类词汇（如：违规、查封、抵押等）"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label style="color:#9f1239">⚠️ 风控-竞品</label>
+            <textarea id="lex-risk_competitor" rows="3" class="w-full p-2 border border-rose-300 rounded text-xs bg-rose-50" placeholder="竞品/对手品牌词（如：谷川、选址等）"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>地域词</label>
+            <textarea id="lex-geo" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="逗号或换行分隔"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>园区词</label>
+            <textarea id="lex-park" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="工业园区/经济园区/经开区等"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>土地词</label>
+            <textarea id="lex-land" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="土地/地块/出让等"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>厂房词</label>
+            <textarea id="lex-factory" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="厂房/车间/制造等"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>仓库词</label>
+            <textarea id="lex-warehouse" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="仓库/仓储/物流等"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>写字楼词</label>
+            <textarea id="lex-office" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="写字楼/办公楼/商务楼等"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>通用词</label>
+            <textarea id="lex-generic" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="逗号或换行分隔"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>价格词</label>
+            <textarea id="lex-price" rows="2" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="逗号或换行分隔"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>疑问词</label>
+            <textarea id="lex-question" rows="2" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="逗号或换行分隔"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>咨询词</label>
+            <textarea id="lex-consult" rows="2" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="逗号或换行分隔"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>噪音词</label>
+            <textarea id="lex-noise" rows="3" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="词库中的词在分词时标记为噪音（如：的、了、附近、怎么样）"></textarea>
+          </div>
+          <div class="lexicon-row">
+            <label>长尾词判定</label>
+            <div class="flex items-center gap-2 text-xs">
+              字数 ≥ <input id="lex-longtail-len" type="number" min="2" max="20" value="6" class="w-14 px-2 py-1 border border-slate-300 rounded"> 且 不属于以上任何明确词性
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 flex gap-2 flex-wrap">
+          <button id="btnExportLex" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100">导出词库JSON</button>
+          <label class="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 cursor-pointer">导入词库JSON<input id="fileLex" type="file" accept=".json" class="hidden"></label>
+          <button id="btnResetLex" class="text-xs px-3 py-1.5 bg-rose-50 text-rose-700 rounded hover:bg-rose-100">恢复默认词库</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 统计区 -->
+  <section id="statsSection" class="card p-5 mb-5 hidden">
+    <h2 class="text-lg font-bold mb-3">③ 筛词结果统计</h2>
+    <div id="statCards" class="flex flex-wrap gap-3 mb-4"></div>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="p-3 bg-slate-50 rounded-lg"><canvas id="chartPie" height="220"></canvas></div>
+      <div class="p-3 bg-slate-50 rounded-lg"><canvas id="chartBar" height="220"></canvas></div>
+    </div>
+  </section>
+
+  <!-- 输出区 -->
+  <section id="outputSection" class="card p-5 mb-5 hidden">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <h2 class="text-lg font-bold">④ 筛词结果（按词性切割）</h2>
+      <div class="flex gap-2 flex-wrap">
+        <button id="btnCopyTab" class="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">复制当前Tab</button>
+        <button id="btnExportTab" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100">导出当前Tab CSV</button>
+        <button id="btnExportAll" class="text-xs px-3 py-1.5 bg-violet-50 text-violet-700 rounded hover:bg-violet-100">导出全部分析 CSV</button>
+      </div>
+    </div>
+    <div id="tabBar" class="flex gap-2 mb-4 overflow-x-auto pb-2"></div>
+    <div class="scroll-x" style="max-height:560px;overflow:auto">
+      <table id="resultTable">
+        <thead><tr><th class="w-12">#</th><th>搜索词</th><th>命中关键词</th><th>关键词分词</th><th>相似度</th><th>附加内容</th><th>噪音</th><th>主词性</th><th>全部词性标签</th><th class="w-14">字数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="emptyTip" class="text-center text-slate-400 py-8 hidden">该词性下暂无搜索词</div>
+  </section>
+
+  <!-- 规则说明 -->
+  <section class="card p-5 mb-5">
+    <h2 class="text-lg font-bold mb-2">⑤ 词性分类规则与切割逻辑</h2>
+    <div class="text-sm text-slate-600 space-y-1.5 leading-relaxed">
+      <p><strong>分词（字段级拆分）</strong>：关键词和搜索词<strong>各自独立</strong>按词库做「最大匹配分词」，每段都是完整字段（如「上海松江万达附近的园区」→ 上海+松江+万达+附近的+园区），不切碎成单字，保证字段完整。</p>
+      <p><strong>命中关键词</strong>：就是<strong>该行第一列的关键词本身</strong>，不跨行搜索、不瞎匹配。第一列写了什么关键词，命中关键词就写什么。</p>
+      <p><strong>相似度</strong>：关键词分词与搜索词分词的<strong>字段级智能对比</strong>（精确相等或包含关系都算命中），对称重叠度 0~1。1=完全同一事物；越接近 1 表示搜索词和关键词搜的是同一个东西；越低则差距越大、可能不是同一意向。</p>
+      <p><strong>关键词分词</strong>：关键词自身的完整分词字段展示（如「上海松江万达附近的园区」→ 上海+松江+万达+附近的+园区），方便直观对比搜索词和关键词的差异。</p>
+      <p><strong>附加内容</strong>：搜索词<strong>自身的分词字段中非噪音部分</strong>（排除噪音词库命中的字段，保留有意义成分，完整不去重），方便直接看到搜索词由哪些有效成分组成。</p>
+      <p><strong>噪音</strong>：分词中命中噪音词库的字段（如"的、了、附近"等）+ 未命中词库的单字残片兜底。噪音词不参与主词性竞争，附加内容自动排除噪音。</p>
+      <p><strong>词性识别</strong>：按搜索词每个分词字段命中的词库确定词性（风控-通用/风控-竞品/价格/园区/土地/厂房/仓库/写字楼/咨询/地域/疑问/通用/噪音），「全部词性标签」列列出所有命中词性；无明确词性的字段兜底归入长尾。</p>
+      <p><strong>噪音词</strong>：由噪音词库定义（如"的、了、附近、怎么样"等），分词时命中的噪音词性字段标记为噪音；未命中词库的单字残片（如"吗"等）也兜底归入噪音。噪音词只做标签展示、不参与主词性竞争，附加内容中自动排除噪音字段，保留有意义成分。</p>
+      <p><strong>风控词</strong>：包含「风控-通用」（不能买的通用类词汇，如查封/抵押/违规等）和「风控-竞品」（竞品/对手品牌词）。命中风控词的搜索词意味着<strong>存在风险</strong>——可能是不能投放的词或竞品词，应优先否词处理。风控词为<strong>最高优先级</strong>，一旦命中即归入风控Tab，不会被其他词性覆盖。</p>
+      <p><strong>主词性（用于切割归组）优先级</strong>：风控-通用 &gt; 风控-竞品 &gt; 价格词 &gt; 园区词 &gt; 土地词 &gt; 厂房词 &gt; 仓库词 &gt; 写字楼词 &gt; 咨询词 &gt; 地域词 &gt; 疑问词 &gt; 通用词 &gt; 长尾词。噪音词不争主词性。每个搜索词按主词性归入唯一Tab，避免重复计数。</p>
+      <p><strong>切割输出</strong>：上方Tab栏按主词性分组显示，可单独复制/导出某个词性组——「风控-通用」「风控-竞品」Tab集中显示所有命中风控词的搜索词（优先否词处理），「价格词」Tab集中显示含价格字段的搜索词，「园区词/土地词/厂房词/仓库词/写字楼词」Tab分别集中含对应产品字段的搜索词，「咨询词」Tab集中显示含咨询意向字段（电话/微信/附近…）的搜索词，「地域词」Tab集中显示含地域字段的搜索词，便于扩展关键词库和账户分组建词。</p>
+    </div>
+  </section>
+
+  <footer class="text-center text-blue-200 text-xs pb-6">本地运行 · 词库配置自动保存在本机浏览器（localStorage）· 数据不出本机 · Ctrl+S 可导出并更新词库JSON（不影响搜索词数据板块）</footer>
+</div>
+
+<script>
+// ============ 默认词库（园区招商行业） ============
+const DEFAULT_LEXICON = {
+  risk_generic: "查封,抵押,冻结,拍卖,法拍,强制执行,失信,黑名单,违法,违规,处罚,罚款,吊销,注销,注销公司,破产,清算,停业,歇业,取缔,非法,传销,诈骗,欺诈,纠纷,诉讼,仲裁,争议,违约,欠税,逃税,漏税,偷税,抗税,欠款,欠费,拖欠,收不到钱,退款,投诉,举报,维权,纠纷,纠纷处理,仲裁,仲裁机构,诉讼,起诉,告,打官司,法律风险,政策风险,限购,限售,限贷,调控,调控政策,封条,查封房,查封厂房,查封土地,查封仓库,冻结资产,冻结账户,抵押房,抵押物,抵押贷款,二次抵押,抵押登记,抵押权,强制执行,执行令,法院执行,拍卖公告,拍卖信息,法拍房,法拍厂房,法拍土地,法拍仓库,失信名单,失信被执行,失信企业,黑名单,违规操作,违规经营,行政处罚,罚款通知,吊销执照,注销登记,破产清算,停产停业,非法经营,传销组织,诈骗案,欺诈行为,合同纠纷,合同违约,欠税名单,欠税公告,欠款催收,欠费停供,拖欠工资,拖欠租金,投诉举报,消费者投诉,维权渠道,纠纷调解,仲裁裁决,诉讼案件,起诉状,法律风险提示,政策风险提示,限购令,限售令,限贷令,调控收紧",
+  risk_competitor: "谷川,谷川科技,选址,选址中国,选址网,选址服务,选址平台,选址公司,招商选址,厂房选址,园区选址,选址咨询,选址方案,选址报告,选址评估,选址分析,选址规划,选址研究院,选址智库,选址管家,选址助手,选址大师,选址专家,选址顾问,选址中介,选址代理,选址外包,选址托管,选址工具,选址系统,选址软件,选址APP,选址小程序,选址网站,选址在线,选址互联网,选址数字化,选址信息化,选址智能化,选址AI,选址大数据,选址云计算,选址物联网,选址区块链,选址元宇宙,选哪儿,选哪,选哪儿网,选哪网,选哪儿平台,选哪平台,选哪儿公司,选哪公司",
+  geo: "北京,上海,广州,深圳,杭州,南京,成都,武汉,西安,重庆,天津,苏州,长沙,青岛,郑州,沈阳,大连,宁波,厦门,福州,合肥,济南,无锡,哈尔滨,长春,昆明,贵阳,南昌,太原,石家庄,兰州,银川,西宁,乌鲁木齐,呼和浩特,海口,三亚,拉萨,南宁,珠三角,长三角,京津冀,大湾区,浦东,海淀,朝阳,南山,福田,天河,渝中,武侯,锦江,鼓楼,历下,市南,雁塔,未央,沙坪坝,九龙坡,南岸,渝北,江北,宝山,闵行,嘉定,松江,青浦,奉贤,金山,崇明,通州,昌平,大兴,顺义,房山",
+  park: "工业园区,经济园区,工业区,产业园,经开区,高新区,开发区,保税区,自贸区,科技园,创业园,商务园,物流园,软件园,化工园,工业园,园区,出口加工区,综合保税区,边境经济合作区",
+  land: "土地,地块,出让,招拍挂,工业用地,商住用地,宅基地,征地,地皮,批地,供地,竞地,地价,用地,地权,土地使用权,工业土地,仓储用地,商业用地,转让地,租地",
+  factory: "厂房,车间,制造,加工,生产线,工厂,制造业,工业厂房,标准厂房,厂房出租,厂房租赁,厂房出售,厂房转让,钢构厂房,重工业,轻工业,装配,代工,作坊,小作坊",
+  warehouse: "仓库,仓储,物流,货运,库房,货仓,冷库,保税仓,中转仓,周转仓,配送,分拨,堆场,存货,仓租,仓库出租,仓库租赁,仓库出售,物流仓库,仓储中心,配送中心",
+  office: "写字楼,办公楼,商务楼,商务中心,企业中心,总部大楼,甲级写字楼,乙级写字楼,写字楼出租,写字楼租赁,写字楼出售,办公空间,联合办公,共享办公,写字楼招租,写字楼售价",
+  generic: "装修,二手房,新房,租房,房价,买房,卖房,贷款,过户,中介,佣金,学区房,地铁房,江景房,海景房,别墅,公寓,商铺,loft,跃层,复式,毛坯,精装,简装,翻新,改造,设计,建材,家具,家电,软装,硬装,橱柜,衣柜,地板,瓷砖,涂料,壁纸,门窗,灯具,卫浴,厨房,客厅,卧室,阳台,卫生间,书房,玄关,吊顶,背景墙,水电,防水,招商,入驻,注册,手续,代办,注册公司,选址,投资,回报,税收,优惠政策,补贴,退税,扶持,补贴政策,政策,税收优惠",
+  price: "多少钱,价格,报价,费用,成本,预算,性价比,便宜,贵,优惠,折扣,活动价,特价,秒杀,满减,优惠券,租金,租金价格,出租价格,多少钱一平,多少钱一平方,租价,售价,均价,单价",
+  question: "怎么样,好不好,靠谱吗,如何,怎么,是不是,能不能,可以吗,值得吗,推荐,评测,对比,有哪些,哪家,哪个,是什么,为什么,怎么办,行不行,靠谱不,值不值,几,吗,呢",
+  consult: "电话,咨询,联系,预约,上门,免费,客服,热线,微信,地址,门店,在哪里",
+  noise: "的,了,吗,呢,啊,吧,嘛,哦,哈,呀,嗯,是,在,有,和,与,也,都,还,就,要,会,能,可,这,那,个,一,几,多,些,里,中,上,下,前,后,到,去,从,为,等,被,把,让,给,过,来,得,地,着,又,很,最,更,不,没,无,未,已,时,年,月,日,号,第,家,间,处,位,种,类,样,次,回,场,件,套,批,段,块,片,点,边,面,头,底,起,落,开,关,出,入,往,向,沿,经,通,同,比,像,似,约,约莫,大约,大概,左右,上下,前后,附近,周边,旁边,旁边,就近,附近区域,就近区域",
+  longtailLen: 6
+};
+
+const LEXICON_META = [
+  {key:'risk_generic', label:'风控-通用', tagClass:'tag-risk-generic', color:'#9f1239'},
+  {key:'risk_competitor', label:'风控-竞品', tagClass:'tag-risk-competitor', color:'#be123c'},
+  {key:'price', label:'价格词', tagClass:'tag-price', color:'#9d174d'},
+  {key:'park', label:'园区词', tagClass:'tag-park', color:'#0e7490'},
+  {key:'land', label:'土地词', tagClass:'tag-land', color:'#3730a3'},
+  {key:'factory', label:'厂房词', tagClass:'tag-factory', color:'#92400e'},
+  {key:'warehouse', label:'仓库词', tagClass:'tag-warehouse', color:'#991b1b'},
+  {key:'office', label:'写字楼词', tagClass:'tag-office', color:'#6b21a8'},
+  {key:'consult', label:'咨询词', tagClass:'tag-consult', color:'#0e7490'},
+  {key:'geo', label:'地域词', tagClass:'tag-geo', color:'#065f46'},
+  {key:'question', label:'疑问词', tagClass:'tag-question', color:'#065f46'},
+  {key:'generic', label:'通用词', tagClass:'tag-generic', color:'#475569'},
+  {key:'noise', label:'噪音词', tagClass:'tag-noise', color:'#64748b'},
+  {key:'longtail', label:'长尾词', tagClass:'tag-longtail', color:'#475569'}
+];
+// 主词性优先级顺序（索引即优先级），风控词最优先，噪音词不参与主词性竞争
+const PRIORITY = ['risk_generic','risk_competitor','price','park','land','factory','warehouse','office','consult','geo','question','generic','longtail'];
+
+let currentResult = [];     // 当前分析结果
+let currentTab = 'all';     // 当前激活的Tab
+let pieChart=null, barChart=null;
+
+// ============ 工具函数 ============
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+function parseList(text){
+  if(!text) return [];
+  return [...new Set(text.split(/[\n,，;；\t]+/).map(s=>s.trim()).filter(Boolean))];
+}
+function getLexicon(){
+  const lex={};
+  LEXICON_META.forEach(m=>{
+    if(m.key==='longtail') return;
+    lex[m.key]=parseList(document.getElementById('lex-'+m.key).value);
+  });
+  lex.longtailLen=parseInt(document.getElementById('lex-longtail-len').value)||6;
+  return lex;
+}
+function setLexicon(lex){
+  LEXICON_META.forEach(m=>{
+    if(m.key==='longtail') return;
+    document.getElementById('lex-'+m.key).value=(lex[m.key]||[]).join(',');
+  });
+  document.getElementById('lex-longtail-len').value=lex.longtailLen||6;
+}
+
+// ============ 词库持久化（localStorage + JSON） ============
+// 仅保存「词库配置」，与搜索词数据 / 分析结果完全隔离
+const LS_KEY='sem_keyword_filter_lexicon_v1';
+function persistLexicon(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify(getLexicon()));}catch(err){}
+}
+function loadLexiconConfig(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw){setLexicon(JSON.parse(raw));return true;}
+  }catch(err){}
+  return false;
+}
+function exportLexiconJSON(){
+  const lex=getLexicon();
+  const blob=new Blob([JSON.stringify(lex,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='筛词词库配置.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+// Ctrl+S：更新词库JSON（导出下载）并保存到本机，不影响数据板块
+function saveConfigHotkey(){
+  persistLexicon();
+  exportLexiconJSON();
+  const st=document.getElementById('saveStatus');
+  if(st)st.textContent='词库已保存 '+new Date().toLocaleTimeString('zh-CN');
+  showToast('词库配置已保存（已导出 JSON）');
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ============ 输入计数 ============
+function updateCount(){
+  const raw=document.getElementById('unifiedInput').value;
+  const lines=raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  let twoCol=0, oneCol=0;
+  for(const line of lines){
+    if(line.includes('\t')) twoCol++;
+    else oneCol++;
+  }
+  document.getElementById('rowCount').textContent=lines.length;
+  document.getElementById('twoColCount').textContent=twoCol;
+  document.getElementById('oneColCount').textContent=oneCol;
+}
+document.getElementById('unifiedInput').addEventListener('input',updateCount);
+
+// ============ 分词 + 字段级智能相似度 ============
+// 用用户维护的词库作为词典，对文本做「最大匹配分词」；未命中部分作为一整个完整字段保留
+// 噪音词词库中的词在分词时标记为 noise 词性，不再仅靠"单字=噪音"硬规则
+function buildDict(lex){
+  const dict=[];
+  LEXICON_META.forEach(m=>{
+    if(m.key==='longtail')return;
+    (lex[m.key]||[]).forEach(w=>{if(w)dict.push({term:w,tag:m.key});});
+  });
+  dict.sort((a,b)=>b.term.length-a.term.length); // 最长优先匹配
+  return dict;
+}
+// 分词：返回完整字段数组（每个字段都是完整词，不切碎为单字碎片）
+function segmentText(text, dict){
+  const fields=[]; const tags=new Set();
+  let i=0, n=text.length;
+  while(i<n){
+    let hit=null;
+    for(const d of dict){ if(text.startsWith(d.term,i)){hit=d;break;} }
+    if(hit){
+      fields.push({text:hit.term,tag:hit.tag});
+      if(hit.tag)tags.add(hit.tag);
+      i+=hit.term.length;
+    }else{
+      let j=i+1;
+      while(j<n){
+        let found=false;
+        for(const d of dict){ if(text.startsWith(d.term,j)){found=true;break;} }
+        if(found)break;
+        j++;
+      }
+      fields.push({text:text.slice(i,j),tag:null});
+      i=j;
+    }
+  }
+  return {fields,tags};
+}
+// 字段级匹配计数：精确相等或包含关系（任一方向）均计为命中
+function matchCount(fieldsA, fieldsB){
+  let c=0;
+  for(const a of fieldsA){
+    for(const b of fieldsB){
+      if(a===b || a.includes(b) || b.includes(a)){c++;break;}
+    }
+  }
+  return c;
+}
+// 两段分词结果的智能相似度（对称重叠，范围 0~1）：1=完全同一事物，越低越不像
+function segSimilarity(segA, segB){
+  const A=segA.fields.map(f=>f.text), B=segB.fields.map(f=>f.text);
+  const denom=A.length+B.length;
+  if(denom===0) return (segA.fields.length===0&&segB.fields.length===0)?1:0;
+  return (matchCount(A,B)+matchCount(B,A))/denom;
+}
+// 由分词字段生成词性标签（字段命中的词库即其词性；噪音词只做标签不争主词性；无明确词性兜底归长尾）
+function tagsFromSegments(seg){
+  const tags=[...seg.tags].filter(t=>t!=='noise');
+  if(tags.length===0) tags.push('longtail');
+  // 噪音词始终出现在标签中供查看，但不影响主词性判定
+  if(seg.tags.has('noise')) tags.push('noise');
+  return tags;
+}
+
+function primaryTag(tags){
+  // 主词性优先级中不含 noise，噪音词不争主词性
+  for(const t of PRIORITY){
+    if(tags.includes(t)) return t;
+  }
+  return 'longtail';
+}
+
+// ============ 分析主流程 ============
+function analyze(){
+  // 从unifiedInput解析：每行按\t分割，第1列=关键词，第2列=搜索词
+  // 关键逻辑：每行的「命中关键词」=该行第一列的关键词本身，不跨行搜索
+  // 相似度=同行关键词分词 vs 搜索词分词的字段级对比
+  const raw=document.getElementById('unifiedInput').value;
+  const lines=raw.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const rows=[]; // {kw, sw} 配对
+  for(const line of lines){
+    if(line.includes('\t')){
+      const parts=line.split('\t');
+      if(parts.length>=2 && parts[0] && parts[1]){
+        rows.push({kw:parts[0].trim(), sw:parts[1].trim()});
+      }else{
+        rows.push({kw:'', sw:line.replace(/\t/g,'').trim()});
+      }
+    }else{
+      rows.push({kw:'', sw:line}); // 单列：纯搜索词，无关键词可匹配
+    }
+  }
+  if(rows.length===0){showToast('输入为空，请先粘贴数据');return;}
+  const lex=getLexicon();
+  const dict=buildDict(lex); // 用当前词库构建分词词典
+
+  const result=[];
+  for(const row of rows){
+    const segS=segmentText(row.sw, dict); // 搜索词自身分词（完整字段）
+    const segK=row.kw ? segmentText(row.kw, dict) : {fields:[], tags:new Set()}; // 关键词自身分词
+    // 相似度=同行关键词分词与搜索词分词的字段级智能对比（回答"是不是同一个东西"）
+    const sim=row.kw ? segSimilarity(segS, segK) : 0;
+    // 附加内容=搜索词自身分词中非噪音的字段（词库命中的 noise 词性排除，保留有意义成分）
+    const extras=segS.fields.filter(f=>f.tag!=='noise'&&f.text.length>1).map(f=>f.text);
+    // 噪音=搜索词分词中标记为 noise 词性的字段 + 未命中词库的单字残片（兜底）
+    const noise=segS.fields.filter(f=>f.tag==='noise').map(f=>f.text)
+      .concat(segS.fields.filter(f=>f.tag===null&&f.text.length<=1).map(f=>f.text));
+    // 关键词分词字段
+    const kwSegFields=segK.fields.filter(f=>f.tag!=='noise'&&f.text.length>1).map(f=>f.text);
+    const kwNoise=segK.fields.filter(f=>f.tag==='noise').map(f=>f.text)
+      .concat(segK.fields.filter(f=>f.tag===null&&f.text.length<=1).map(f=>f.text));
+    const tags=tagsFromSegments(segS);
+    const primary=primaryTag(tags);
+    result.push({
+      search:row.sw,
+      kw:row.kw,           // 命中关键词=该行第一列关键词本身
+      kwSeg:kwSegFields,    // 关键词分词字段
+      kwNoise:kwNoise,      // 关键词分词单字噪音
+      similarity:sim,
+      extras, noise, tags, primary,
+      len:row.sw.length
+    });
+  }
+  currentResult=result;
+  renderStats();
+  renderTabs();
+  renderTable('all');
+  document.getElementById('statsSection').classList.remove('hidden');
+  document.getElementById('outputSection').classList.remove('hidden');
+  showToast(`分析完成：共 ${result.length} 条`);
+}
+
+// ============ 统计渲染 ============
+function renderStats(){
+  const total=currentResult.length;
+  const counts={all:total};
+  LEXICON_META.forEach(m=>counts[m.key]=0);
+  currentResult.forEach(r=>{counts[r.primary]++;});
+  const cards=[{key:'all',label:'总数',color:'#1e3a8a'}];
+  LEXICON_META.forEach(m=>cards.push({key:m.key,label:m.label,color:m.color}));
+  const html=cards.map(c=>{
+    const pct=total>0?((counts[c.key]/total)*100).toFixed(1):0;
+    return `<div class="stat-card"><div class="stat-num" style="color:${c.color}">${counts[c.key]}</div><div class="stat-label">${c.label} · ${pct}%</div></div>`;
+  }).join('');
+  document.getElementById('statCards').innerHTML=html;
+
+  // 图表
+  const labels=LEXICON_META.map(m=>m.label);
+  const data=LEXICON_META.map(m=>counts[m.key]);
+  const colors=LEXICON_META.map(m=>m.color);
+  if(pieChart) pieChart.destroy();
+  if(barChart) barChart.destroy();
+  pieChart=new Chart(document.getElementById('chartPie'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors}]},
+    options:{plugins:{legend:{position:'right',labels:{font:{size:11}}}},responsive:true}
+  });
+  barChart=new Chart(document.getElementById('chartBar'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'搜索词数',data,backgroundColor:colors}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}},responsive:true}
+  });
+}
+
+// ============ Tab渲染 ============
+function renderTabs(){
+  const counts={all:currentResult.length};
+  LEXICON_META.forEach(m=>counts[m.key]=0);
+  currentResult.forEach(r=>counts[r.primary]++);
+  const tabs=[{key:'all',label:'全部',color:'#1e3a8a'}];
+  LEXICON_META.forEach(m=>tabs.push({key:m.key,label:m.label,color:m.color}));
+  const html=tabs.map(t=>`<button class="tab-btn px-3 py-1.5 rounded-lg text-sm font-medium ${currentTab===t.key?'active':'bg-slate-100 text-slate-700'}" data-tab="${t.key}">${t.label} <span class="text-xs opacity-75">(${counts[t.key]})</span></button>`).join('');
+  const tabBar=document.getElementById('tabBar');
+  tabBar.innerHTML=html;
+  tabBar.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      currentTab=btn.dataset.tab;
+      renderTabs();
+      renderTable(currentTab);
+    });
+  });
+}
+
+// ============ 表格渲染 ============
+function renderTable(tab){
+  const rows = tab==='all' ? currentResult : currentResult.filter(r=>r.primary===tab);
+  const tagLabel=(k)=>{const m=LEXICON_META.find(x=>x.key===k);return m?m.label:k;};
+  const tagClass=(k)=>{const m=LEXICON_META.find(x=>x.key===k);return m?m.tagClass:'tag-longtail';};
+  const tbody=document.querySelector('#resultTable tbody');
+  if(rows.length===0){
+    tbody.innerHTML='';
+    document.getElementById('emptyTip').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('emptyTip').classList.add('hidden');
+  tbody.innerHTML=rows.map((r,i)=>`
+    <tr>
+      <td class="text-slate-400">${i+1}</td>
+      <td class="font-medium text-slate-800">${escapeHtml(r.search)}</td>
+      <td class="text-xs">${r.kw?`<span class="tag tag-geo">${escapeHtml(r.kw)}</span>`:'<span class="text-slate-400">—</span>'}</td>
+      <td class="text-xs">${r.kwSeg.length?r.kwSeg.map(f=>`<span class="tag tag-geo">${escapeHtml(f)}</span>`).join('+'):'<span class="text-slate-400">—</span>'}</td>
+      <td class="text-xs text-center ${r.kw?(r.similarity>=0.8?'text-emerald-600 font-semibold':r.similarity>=0.5?'text-amber-600':'text-red-500'):'text-slate-400'}">${r.kw?(r.similarity*100).toFixed(0)+'%':'—'}</td>
+      <td class="text-xs">${r.extras.length?r.extras.map(e=>`<span class="tag tag-price">${escapeHtml(e)}</span>`).join('+'):'<span class="text-slate-400">—</span>'}</td>
+      <td class="text-xs text-slate-400">${r.noise.length?r.noise.map(n=>escapeHtml(n)).join(' '):'—'}</td>
+      <td><span class="tag ${tagClass(r.primary)}">${tagLabel(r.primary)}</span></td>
+      <td class="text-xs">${r.tags.map(t=>`<span class="tag ${tagClass(t)}">${tagLabel(t)}</span>`).join(' ')}</td>
+      <td class="text-center">${r.len}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ 复制/导出 ============
+function copyTab(){
+  const rows = currentTab==='all' ? currentResult : currentResult.filter(r=>r.primary===currentTab);
+  if(rows.length===0){showToast('当前Tab无数据');return;}
+  const text=['搜索词\t命中关键词\t关键词分词\t相似度\t附加内容\t噪音\t主词性\t全部词性\t字数'].concat(rows.map(r=>[r.search,r.kw,r.kwSeg.join('+'),r.kw?(r.similarity.toFixed(2)):'—',r.extras.join('+'),r.noise.join('|'),r.primary,r.tags.join('|'),r.len].join('\t'))).join('\n');
+  navigator.clipboard.writeText(text).then(()=>showToast('已复制 '+rows.length+' 行到剪贴板'));
+}
+function downloadCSV(filename, rows){
+  const esc=(v)=>{const s=String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const header=['搜索词','命中关键词','关键词分词','相似度','附加内容','噪音','主词性','全部词性','字数'];
+  const csv=[header.map(esc).join(',')].concat(rows.map(r=>[r.search,r.kw,r.kwSeg.join('+'),r.kw?(r.similarity.toFixed(2)):'—',r.extras.join('+'),r.noise.join('|'),r.primary,r.tags.join('|'),r.len].map(esc).join(','))).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportTab(){
+  const rows = currentTab==='all' ? currentResult : currentResult.filter(r=>r.primary===currentTab);
+  if(rows.length===0){showToast('当前Tab无数据');return;}
+  const label=currentTab==='all'?'全部':(LEXICON_META.find(m=>m.key===currentTab)||{}).label;
+  downloadCSV(`筛词结果_${label}.csv`, rows);
+  showToast('已导出 '+rows.length+' 行 CSV');
+}
+function exportAll(){
+  if(currentResult.length===0){showToast('请先执行分析');return;}
+  downloadCSV('筛词结果_全量.csv', currentResult);
+  showToast('已导出全量 '+currentResult.length+' 行 CSV');
+}
+
+// ============ 词库导入/导出 ============
+function exportLexicon(){
+  const lex=getLexicon();
+  const blob=new Blob([JSON.stringify(lex,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='筛词词库.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  showToast('词库已导出');
+}
+function importLexicon(file){
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const obj=JSON.parse(e.target.result);
+      setLexicon(obj);
+      persistLexicon(); // 同步保存到本机，不影响搜索词数据板块
+      const st=document.getElementById('saveStatus');
+      if(st)st.textContent='词库已载入 '+new Date().toLocaleTimeString('zh-CN');
+      showToast('词库导入成功');
+    }catch(err){showToast('导入失败：JSON格式错误');}
+  };
+  reader.readAsText(file);
+}
+
+// ============ 示例数据 ============
+function loadExample(){
+  // 示例：每行"关键词\t搜索词"两列格式（模拟Excel复制粘贴）
+  const rows=[
+    ['上海南汇工业园区','上海南汇工工业园联系方式'],
+    ['闵行莘庄工业区','上海莘庄工业园区logo'],
+    ['厂房出租','松江标准厂房出租价格'],
+    ['厂房租赁','闵行厂房租赁多少钱'],
+    ['仓库出租','浦东仓库出租联系方式'],
+    ['写字楼租赁','陆家嘴写字楼租赁费用'],
+    ['工业用地出让','嘉定工业用地出让价格'],
+    ['装修','北京二手房装修多少钱'],
+    ['装修','杭州装修公司电话'],
+    ['装修','装修设计风格有哪些'],
+    ['二手房装修','二手房翻新费用预算'],
+    ['上海二手房','上海二手房翻新'],
+    ['北京装修','北京朝阳装修公司推荐'],
+    ['装修公司','深圳装修公司哪家好'],
+    ['装修','广州别墅装修报价'],
+    ['装修多少钱','装修多少钱一平方'],
+    ['装修','成都装修哪家性价比高'],
+    ['装修','武汉装修公司排名'],
+    ['装修','南京装修公司哪家好'],
+    ['装修','上海二手房装修'],
+  ];
+  document.getElementById('unifiedInput').value=rows.map(r=>r.join('\t')).join('\n');
+  updateCount();
+  showToast('示例数据已载入');
+}
+function clearAll(){
+  document.getElementById('unifiedInput').value='';
+  currentResult=[];currentTab='all';
+  document.getElementById('statsSection').classList.add('hidden');
+  document.getElementById('outputSection').classList.add('hidden');
+  if(pieChart)pieChart.destroy();
+  if(barChart)barChart.destroy();
+  updateCount();
+  showToast('已清空');
+}
+
+// ============ 事件绑定 ============
+document.getElementById('btnAnalyze').addEventListener('click',analyze);
+document.getElementById('btnExample').addEventListener('click',loadExample);
+document.getElementById('btnClear').addEventListener('click',clearAll);
+document.getElementById('btnCopyTab').addEventListener('click',copyTab);
+document.getElementById('btnExportTab').addEventListener('click',exportTab);
+document.getElementById('btnExportAll').addEventListener('click',exportAll);
+document.getElementById('btnExportLex').addEventListener('click',exportLexicon);
+document.getElementById('btnResetLex').addEventListener('click',()=>{setLexicon(DEFAULT_LEXICON);try{localStorage.removeItem(LS_KEY);}catch(err){}const st=document.getElementById('saveStatus');if(st)st.textContent='已恢复默认词库';showToast('已恢复默认词库');});
+document.getElementById('fileLex').addEventListener('change',(e)=>{if(e.target.files[0])importLexicon(e.target.files[0]);});
+
+// 顶部工具条：上传 / 保存 / 导出（仅作用于词库配置，不影响搜索词数据板块）
+document.getElementById('fileLexTop').addEventListener('change',(e)=>{if(e.target.files[0]){importLexicon(e.target.files[0]);}e.target.value='';});
+document.getElementById('btnSaveTop').addEventListener('click',saveConfigHotkey);
+document.getElementById('btnExportLexTop').addEventListener('click',()=>{exportLexiconJSON();showToast('词库已导出');});
+
+// Ctrl+S：阻止浏览器保存网页，改为保存词库配置到 JSON + 本机
+document.addEventListener('keydown',(e)=>{
+  if((e.ctrlKey||e.metaKey)&&(e.key==='s'||e.key==='S')){
+    e.preventDefault();
+    saveConfigHotkey();
+  }
+});
+
+// 词库编辑后自动保存（防抖），数据板块不受影响
+let _lexTimer=null;
+function _autoSaveLex(){clearTimeout(_lexTimer);_lexTimer=setTimeout(()=>{
+  persistLexicon();
+  const st=document.getElementById('saveStatus');
+  if(st)st.textContent='词库已自动保存 '+new Date().toLocaleTimeString('zh-CN');
+},600);}
+['risk_generic','risk_competitor','geo','park','land','factory','warehouse','office','generic','price','question','consult','noise'].forEach(k=>{
+  document.getElementById('lex-'+k).addEventListener('input',_autoSaveLex);
+});
+document.getElementById('lex-longtail-len').addEventListener('input',_autoSaveLex);
+
+// ============ 初始化 ============
+// 优先恢复本机保存的词库；无则使用内置默认词库
+if(!loadLexiconConfig()) setLexicon(DEFAULT_LEXICON);
+updateCount();
+</script>
+</body>
+</html>
